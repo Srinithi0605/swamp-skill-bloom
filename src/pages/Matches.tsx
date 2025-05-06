@@ -1,5 +1,5 @@
-
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Check, X } from 'lucide-react';
+import MessageDialog from '@/components/MessageDialog';
 
 interface MatchUser {
   id: number;
@@ -19,6 +20,7 @@ interface MatchUser {
 }
 
 const Matches = () => {
+  const { user } = useAuth();
   // Sample data for demonstration
   const [pendingMatches, setPendingMatches] = useState<MatchUser[]>([
     { 
@@ -71,6 +73,10 @@ const Matches = () => {
     },
   ]);
 
+  // State for message dialog
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
+
   const handleConfirm = (id: number) => {
     const matchToMove = pendingMatches.find(match => match.id === id);
     if (matchToMove) {
@@ -81,6 +87,12 @@ const Matches = () => {
 
   const handleDecline = (id: number) => {
     setPendingMatches(pendingMatches.filter(match => match.id !== id));
+  };
+
+  // Handle opening the message dialog
+  const handleOpenMessageDialog = (match: MatchUser) => {
+    setSelectedMatch(match);
+    setMessageDialogOpen(true);
   };
 
   return (
@@ -169,7 +181,11 @@ const Matches = () => {
                           <div className="mt-6">
                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Send a message:</h4>
                             <div className="flex">
-                              <Button variant="outline" className="flex-1 justify-start">
+                              <Button 
+                                variant="outline" 
+                                className="flex-1 justify-start"
+                                onClick={() => handleOpenMessageDialog(match)}
+                              >
                                 <MessageSquare className="mr-2 h-4 w-4" /> Hey! I'd love to swap skills...
                               </Button>
                             </div>
@@ -215,6 +231,7 @@ const Matches = () => {
                           <div className="mt-auto">
                             <Button 
                               className="w-full bg-white text-green-600 hover:bg-neutral"
+                              onClick={() => handleOpenMessageDialog(match)}
                             >
                               <MessageSquare className="mr-2 h-4 w-4" /> Message
                             </Button>
@@ -268,6 +285,18 @@ const Matches = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Message Dialog */}
+      {selectedMatch && (
+        <MessageDialog
+          open={messageDialogOpen}
+          onClose={() => setMessageDialogOpen(false)}
+          matchId={selectedMatch.id}
+          otherUserId={`${selectedMatch.id}`} // In a real app, this would be the actual user ID
+          otherUserName={selectedMatch.name}
+          otherUserInitials={selectedMatch.avatarInitials}
+        />
+      )}
     </div>
   );
 };
