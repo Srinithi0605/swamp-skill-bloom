@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -6,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Check, X } from 'lucide-react';
-import MessageSystem from '@/components/MessageSystem';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import MessageDialog from '@/components/MessageDialog';
 
 interface MatchUser {
   id: number;
@@ -20,7 +20,8 @@ interface MatchUser {
 }
 
 const Matches = () => {
-  // Sample data for demonstration
+  const { user } = useAuth();
+
   const [pendingMatches, setPendingMatches] = useState<MatchUser[]>([
     {
       id: 1,
@@ -85,6 +86,11 @@ const Matches = () => {
 
   const handleDecline = (id: number) => {
     setPendingMatches(pendingMatches.filter(match => match.id !== id));
+  };
+
+  const handleOpenMessageDialog = (match: MatchUser) => {
+    setSelectedMatch(match);
+    setMessageDialogOpen(true);
   };
 
   return (
@@ -176,10 +182,7 @@ const Matches = () => {
                               <Button
                                 variant="outline"
                                 className="flex-1 justify-start"
-                                onClick={() => {
-                                  setSelectedMatch(match);
-                                  setMessageDialogOpen(true);
-                                }}
+                                onClick={() => handleOpenMessageDialog(match)}
                               >
                                 <MessageSquare className="mr-2 h-4 w-4" /> Hey! I'd love to swap skills...
                               </Button>
@@ -226,6 +229,7 @@ const Matches = () => {
                           <div className="mt-auto">
                             <Button
                               className="w-full bg-white text-green-600 hover:bg-neutral"
+                              onClick={() => handleOpenMessageDialog(match)}
                             >
                               <MessageSquare className="mr-2 h-4 w-4" /> Message
                             </Button>
@@ -279,16 +283,17 @@ const Matches = () => {
           </Tabs>
         </div>
       </main>
-      <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Chat with {selectedMatch?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedMatch && (
-            <MessageSystem otherUserId={String(selectedMatch.id)} />
-          )}
-        </DialogContent>
-      </Dialog>
+
+      {selectedMatch && (
+        <MessageDialog
+          open={messageDialogOpen}
+          onClose={() => setMessageDialogOpen(false)}
+          matchId={selectedMatch.id}
+          otherUserId={`${selectedMatch.id}`}
+          otherUserName={selectedMatch.name}
+          otherUserInitials={selectedMatch.avatarInitials}
+        />
+      )}
     </div>
   );
 };
