@@ -1,15 +1,14 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, LogIn, UserPlus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -36,8 +35,8 @@ const NavBar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-swamp text-xl font-bold">SkillSwamp</span>
-              <div className="ml-2 text-primary text-xl animate-wave">🌿</div>
+              <span className="text-swamp text-xl font-bold">SkillSwap</span>
+              <div className="ml-2 text-primary text-xl animate-wave">🤝</div>
             </Link>
           </div>
 
@@ -123,7 +122,7 @@ const NavBar = () => {
                 </Link>
               </>
             )}
-            
+
             {isAuthenticated ? (
               <>
                 <Link to="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
