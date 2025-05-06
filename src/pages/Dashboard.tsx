@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MessageSystem from '@/components/MessageSystem';
 
 interface Skill {
   id: number;
@@ -34,7 +34,7 @@ interface Skill {
 }
 
 interface MatchUser {
-  id: number;
+  id: string;
   name: string;
   skillOffered: string;
   skillRequested: string;
@@ -54,6 +54,8 @@ const skillCategories = [
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
+  const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   // Sample data for demonstration
   const [skillsOffered, setSkillsOffered] = useState<Skill[]>([
     { id: 1, name: 'JavaScript Programming', category: 'Technology' },
@@ -70,19 +72,19 @@ const Dashboard = () => {
   const [isAddingOffered, setIsAddingOffered] = useState(false);
 
   const matches: MatchUser[] = [
-    { 
-      id: 1, 
-      name: 'Alex Johnson', 
-      skillOffered: 'Photography', 
+    {
+      id: "b1e8c1a2-1234-4cde-9abc-1234567890ab",
+      name: 'Alex Johnson',
+      skillOffered: 'Photography',
       skillRequested: 'JavaScript Programming',
-      matchPercentage: 92 
+      matchPercentage: 92
     },
-    { 
-      id: 2, 
-      name: 'Sam Rivera', 
-      skillOffered: 'Cooking', 
+    {
+      id: "c2f9d2b3-5678-4def-8bcd-2345678901bc",
+      name: 'Sam Rivera',
+      skillOffered: 'Cooking',
       skillRequested: 'French Language',
-      matchPercentage: 85 
+      matchPercentage: 85
     },
   ];
 
@@ -142,7 +144,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
       <NavBar />
-      
+
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Welcome Banner */}
@@ -150,7 +152,7 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold mb-2">Welcome back, User!</h1>
             <p>You have {matches.length} potential skill matches waiting for you.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content - Skills */}
             <div className="lg:col-span-2 space-y-6">
@@ -160,8 +162,8 @@ const Dashboard = () => {
                   <CardTitle>Skills I Offer</CardTitle>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-primary hover:bg-primary-dark"
                         onClick={() => setIsAddingOffered(true)}
                       >
@@ -178,18 +180,18 @@ const Dashboard = () => {
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label htmlFor="skill-name">Skill name</Label>
-                          <Input 
-                            id="skill-name" 
+                          <Input
+                            id="skill-name"
                             value={newSkill.name}
-                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                             placeholder="e.g. JavaScript Programming"
                           />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="category">Category</Label>
-                          <Select 
+                          <Select
                             value={newSkill.category}
-                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                            onValueChange={(value) => setNewSkill({ ...newSkill, category: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
@@ -223,7 +225,7 @@ const Dashboard = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-500"
                             onClick={() => handleRemoveSkill(skill.id, true)}
                           >
@@ -235,15 +237,15 @@ const Dashboard = () => {
                   ))}
                 </CardContent>
               </Card>
-              
+
               {/* Skills I Want */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Skills I Want to Learn</CardTitle>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         className="bg-secondary hover:bg-secondary-dark"
                         onClick={() => setIsAddingOffered(false)}
                       >
@@ -260,18 +262,18 @@ const Dashboard = () => {
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label htmlFor="skill-name">Skill name</Label>
-                          <Input 
-                            id="skill-name" 
+                          <Input
+                            id="skill-name"
                             value={newSkill.name}
-                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                             placeholder="e.g. Photography"
                           />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="category">Category</Label>
-                          <Select 
+                          <Select
                             value={newSkill.category}
-                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                            onValueChange={(value) => setNewSkill({ ...newSkill, category: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
@@ -305,7 +307,7 @@ const Dashboard = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             className="text-red-500"
                             onClick={() => handleRemoveSkill(skill.id, false)}
                           >
@@ -317,43 +319,48 @@ const Dashboard = () => {
                   ))}
                 </CardContent>
               </Card>
-              
-              {/* Recent Matches */}
+
+              {/* Matches Section */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Matches</CardTitle>
+                  <CardTitle>Your Matches</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {matches.map((match) => (
-                    <div key={match.id} className="flex items-center justify-between p-4 border rounded-lg mb-3 bg-white hover:shadow-md transition-shadow">
-                      <div className="flex items-center">
-                        <div className="bg-swamp h-10 w-10 rounded-full flex items-center justify-center text-white mr-4">
-                          <User className="h-5 w-5" />
+                  <div className="space-y-4">
+                    {matches.map((match) => (
+                      <div key={match.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User className="h-6 w-6 text-gray-500" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">{match.name}</h3>
+                            <p className="text-sm text-gray-500">
+                              Offers: {match.skillOffered} | Wants: {match.skillRequested}
+                            </p>
+                            <div className="flex items-center mt-1">
+                              <Progress value={match.matchPercentage} className="w-24" />
+                              <span className="ml-2 text-sm">{match.matchPercentage}% match</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-medium">{match.name}</h4>
-                          <p className="text-sm text-gray-500">
-                            Offers: <span className="text-primary">{match.skillOffered}</span> • 
-                            Wants: <span className="text-secondary">{match.skillRequested}</span>
-                          </p>
-                        </div>
+                        <Button
+                          onClick={() => {
+                            setSelectedMatch(match);
+                            setIsMessageDialogOpen(true);
+                          }}
+                          className="bg-primary hover:bg-primary-dark"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Message
+                        </Button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium bg-green-100 text-green-800 py-1 px-2 rounded-full">
-                          {match.matchPercentage}% Match
-                        </span>
-                        <Link to="/matches">
-                          <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-                            <MessageSquare className="h-4 w-4 mr-2" /> Message
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Profile Completion */}
@@ -386,7 +393,7 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               {/* Notifications */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -419,7 +426,7 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               {/* Quick Actions */}
               <Card>
                 <CardHeader>
@@ -442,18 +449,18 @@ const Dashboard = () => {
                       <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
                           <Label htmlFor="skill-name">Skill name</Label>
-                          <Input 
-                            id="skill-name" 
+                          <Input
+                            id="skill-name"
                             value={newSkill.name}
-                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                             placeholder="Enter skill name"
                           />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="category">Category</Label>
-                          <Select 
+                          <Select
                             value={newSkill.category}
-                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                            onValueChange={(value) => setNewSkill({ ...newSkill, category: value })}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
@@ -487,6 +494,20 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Message Dialog */}
+      <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Chat with {selectedMatch?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedMatch && (
+            <MessageSystem
+              otherUserId={selectedMatch.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

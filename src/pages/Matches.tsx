@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Check, X } from 'lucide-react';
+import MessageSystem from '@/components/MessageSystem';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface MatchUser {
   id: number;
@@ -21,28 +22,28 @@ interface MatchUser {
 const Matches = () => {
   // Sample data for demonstration
   const [pendingMatches, setPendingMatches] = useState<MatchUser[]>([
-    { 
-      id: 1, 
-      name: 'Alex Johnson', 
-      skillOffered: 'Photography', 
+    {
+      id: 1,
+      name: 'Alex Johnson',
+      skillOffered: 'Photography',
       skillRequested: 'JavaScript Programming',
       matchPercentage: 92,
       avatarInitials: 'AJ',
       location: 'New York, NY'
     },
-    { 
-      id: 2, 
-      name: 'Sam Rivera', 
-      skillOffered: 'Cooking', 
+    {
+      id: 2,
+      name: 'Sam Rivera',
+      skillOffered: 'Cooking',
       skillRequested: 'French Language',
       matchPercentage: 85,
       avatarInitials: 'SR',
       location: 'Austin, TX'
     },
-    { 
-      id: 3, 
-      name: 'Taylor Wong', 
-      skillOffered: 'Yoga', 
+    {
+      id: 3,
+      name: 'Taylor Wong',
+      skillOffered: 'Yoga',
       skillRequested: 'Guitar',
       matchPercentage: 78,
       avatarInitials: 'TW',
@@ -51,25 +52,28 @@ const Matches = () => {
   ]);
 
   const [confirmedMatches, setConfirmedMatches] = useState<MatchUser[]>([
-    { 
-      id: 4, 
-      name: 'Jordan Lee', 
-      skillOffered: 'Spanish Language', 
+    {
+      id: 4,
+      name: 'Jordan Lee',
+      skillOffered: 'Spanish Language',
       skillRequested: 'Web Design',
       matchPercentage: 95,
       avatarInitials: 'JL',
       location: 'Chicago, IL'
     },
-    { 
-      id: 5, 
-      name: 'Morgan Smith', 
-      skillOffered: 'Drawing', 
+    {
+      id: 5,
+      name: 'Morgan Smith',
+      skillOffered: 'Drawing',
       skillRequested: 'JavaScript Programming',
       matchPercentage: 88,
       avatarInitials: 'MS',
       location: 'Seattle, WA'
     },
   ]);
+
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
 
   const handleConfirm = (id: number) => {
     const matchToMove = pendingMatches.find(match => match.id === id);
@@ -86,11 +90,11 @@ const Matches = () => {
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
       <NavBar />
-      
+
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold text-swamp mb-6">Your Skill Matches</h1>
-          
+
           <Tabs defaultValue="pending" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="pending" className="flex-1">
@@ -100,7 +104,7 @@ const Matches = () => {
                 Confirmed Matches <Badge className="ml-2 bg-green-500">{confirmedMatches.length}</Badge>
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="pending">
               <div className="space-y-4">
                 {pendingMatches.length > 0 ? (
@@ -118,22 +122,22 @@ const Matches = () => {
                                 <p className="text-sm opacity-90">{match.location}</p>
                               </div>
                             </div>
-                            
+
                             <div className="mb-4">
                               <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white">
                                 {match.matchPercentage}% Match
                               </span>
                             </div>
                           </div>
-                          
+
                           <div className="mt-auto space-y-2">
-                            <Button 
+                            <Button
                               className="w-full bg-white text-primary hover:bg-neutral"
                               onClick={() => handleConfirm(match.id)}
                             >
                               <Check className="mr-2 h-4 w-4" /> Confirm Match
                             </Button>
-                            <Button 
+                            <Button
                               variant="outline"
                               className="w-full border-white text-white hover:bg-white/20"
                               onClick={() => handleDecline(match.id)}
@@ -142,7 +146,7 @@ const Matches = () => {
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="p-6 md:w-2/3">
                           <div className="flex flex-col md:flex-row gap-6">
                             <div className="flex-1">
@@ -154,7 +158,7 @@ const Matches = () => {
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="flex-1">
                               <h4 className="text-sm font-medium text-muted-foreground mb-2">They're looking for:</h4>
                               <div className="p-4 rounded-lg border border-secondary-light">
@@ -165,11 +169,18 @@ const Matches = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="mt-6">
                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Send a message:</h4>
                             <div className="flex">
-                              <Button variant="outline" className="flex-1 justify-start">
+                              <Button
+                                variant="outline"
+                                className="flex-1 justify-start"
+                                onClick={() => {
+                                  setSelectedMatch(match);
+                                  setMessageDialogOpen(true);
+                                }}
+                              >
                                 <MessageSquare className="mr-2 h-4 w-4" /> Hey! I'd love to swap skills...
                               </Button>
                             </div>
@@ -186,7 +197,7 @@ const Matches = () => {
                 )}
               </div>
             </TabsContent>
-            
+
             <TabsContent value="confirmed">
               <div className="space-y-4">
                 {confirmedMatches.length > 0 ? (
@@ -204,23 +215,23 @@ const Matches = () => {
                                 <p className="text-sm opacity-90">{match.location}</p>
                               </div>
                             </div>
-                            
+
                             <div className="mb-4">
                               <span className="inline-flex items-center rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white">
                                 Match Confirmed!
                               </span>
                             </div>
                           </div>
-                          
+
                           <div className="mt-auto">
-                            <Button 
+                            <Button
                               className="w-full bg-white text-green-600 hover:bg-neutral"
                             >
                               <MessageSquare className="mr-2 h-4 w-4" /> Message
                             </Button>
                           </div>
                         </div>
-                        
+
                         <div className="p-6 md:w-2/3">
                           <div className="flex flex-col md:flex-row gap-6">
                             <div className="flex-1">
@@ -232,7 +243,7 @@ const Matches = () => {
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="flex-1">
                               <h4 className="text-sm font-medium text-muted-foreground mb-2">They're looking for:</h4>
                               <div className="p-4 rounded-lg border border-green-200">
@@ -243,12 +254,12 @@ const Matches = () => {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="mt-6">
                             <h4 className="text-sm font-medium text-muted-foreground mb-2">Next steps:</h4>
                             <div className="p-4 rounded-lg bg-green-50 border border-green-200">
                               <p className="text-sm text-gray-800">
-                                <span className="font-medium">Congratulations!</span> You've confirmed this skill swap. 
+                                <span className="font-medium">Congratulations!</span> You've confirmed this skill swap.
                                 Schedule a time to meet with {match.name.split(' ')[0]} and start sharing knowledge.
                               </p>
                             </div>
@@ -268,6 +279,16 @@ const Matches = () => {
           </Tabs>
         </div>
       </main>
+      <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Chat with {selectedMatch?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedMatch && (
+            <MessageSystem otherUserId={String(selectedMatch.id)} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
