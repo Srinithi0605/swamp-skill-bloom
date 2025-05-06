@@ -4,6 +4,7 @@ import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, MoreHorizontal, User, MessageSquare, Bell } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Skill {
   id: number;
@@ -27,7 +41,19 @@ interface MatchUser {
   matchPercentage: number;
 }
 
+const skillCategories = [
+  "Arts & Crafts",
+  "Cooking & Baking",
+  "Design",
+  "Languages",
+  "Music",
+  "Programming & Technology",
+  "Sports & Fitness",
+  "Other"
+];
+
 const Dashboard = () => {
+  const { toast } = useToast();
   // Sample data for demonstration
   const [skillsOffered, setSkillsOffered] = useState<Skill[]>([
     { id: 1, name: 'JavaScript Programming', category: 'Technology' },
@@ -39,6 +65,9 @@ const Dashboard = () => {
     { id: 1, name: 'Photography', category: 'Arts' },
     { id: 2, name: 'Cooking', category: 'Food' },
   ]);
+
+  const [newSkill, setNewSkill] = useState({ name: '', category: '' });
+  const [isAddingOffered, setIsAddingOffered] = useState(false);
 
   const matches: MatchUser[] = [
     { 
@@ -60,6 +89,56 @@ const Dashboard = () => {
   // Profile completion calculation
   const profileCompletion = 70; // percentage
 
+  const handleAddSkill = () => {
+    if (!newSkill.name || !newSkill.category) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const skill = {
+      id: isAddingOffered ? skillsOffered.length + 1 : skillsWanted.length + 1,
+      name: newSkill.name,
+      category: newSkill.category
+    };
+
+    if (isAddingOffered) {
+      setSkillsOffered([...skillsOffered, skill]);
+      toast({
+        title: "Success!",
+        description: `${skill.name} added to your offered skills.`,
+      });
+    } else {
+      setSkillsWanted([...skillsWanted, skill]);
+      toast({
+        title: "Success!",
+        description: `${skill.name} added to your wanted skills.`,
+      });
+    }
+
+    // Reset form
+    setNewSkill({ name: '', category: '' });
+  };
+
+  const handleRemoveSkill = (id: number, isOffered: boolean) => {
+    if (isOffered) {
+      setSkillsOffered(skillsOffered.filter(skill => skill.id !== id));
+      toast({
+        title: "Skill removed",
+        description: "Skill has been removed from your offered skills.",
+      });
+    } else {
+      setSkillsWanted(skillsWanted.filter(skill => skill.id !== id));
+      toast({
+        title: "Skill removed",
+        description: "Skill has been removed from your wanted skills.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
       <NavBar />
@@ -79,9 +158,55 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Skills I Offer</CardTitle>
-                  <Button size="sm" className="bg-primary hover:bg-primary-dark">
-                    <Plus className="h-4 w-4 mr-2" /> Add Skill
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        className="bg-primary hover:bg-primary-dark"
+                        onClick={() => setIsAddingOffered(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add Skill
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add a skill you can teach</DialogTitle>
+                        <DialogDescription>
+                          Let others know what skills you can share with the community.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="skill-name">Skill name</Label>
+                          <Input 
+                            id="skill-name" 
+                            value={newSkill.name}
+                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            placeholder="e.g. JavaScript Programming"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="category">Category</Label>
+                          <Select 
+                            value={newSkill.category}
+                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skillCategories.map((category) => (
+                                <SelectItem key={category} value={category}>{category}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   {skillsOffered.map((skill) => (
@@ -98,7 +223,12 @@ const Dashboard = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-500">Remove</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-500"
+                            onClick={() => handleRemoveSkill(skill.id, true)}
+                          >
+                            Remove
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -110,9 +240,55 @@ const Dashboard = () => {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Skills I Want to Learn</CardTitle>
-                  <Button size="sm" className="bg-secondary hover:bg-secondary-dark">
-                    <Plus className="h-4 w-4 mr-2" /> Add Skill
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        size="sm" 
+                        className="bg-secondary hover:bg-secondary-dark"
+                        onClick={() => setIsAddingOffered(false)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" /> Add Skill
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add a skill you want to learn</DialogTitle>
+                        <DialogDescription>
+                          Let others know what skills you're interested in learning.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="skill-name">Skill name</Label>
+                          <Input 
+                            id="skill-name" 
+                            value={newSkill.name}
+                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            placeholder="e.g. Photography"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="category">Category</Label>
+                          <Select 
+                            value={newSkill.category}
+                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skillCategories.map((category) => (
+                                <SelectItem key={category} value={category}>{category}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
                   {skillsWanted.map((skill) => (
@@ -129,7 +305,12 @@ const Dashboard = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-500">Remove</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-500"
+                            onClick={() => handleRemoveSkill(skill.id, false)}
+                          >
+                            Remove
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -161,9 +342,11 @@ const Dashboard = () => {
                         <span className="text-xs font-medium bg-green-100 text-green-800 py-1 px-2 rounded-full">
                           {match.matchPercentage}% Match
                         </span>
-                        <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-                          <MessageSquare className="h-4 w-4 mr-2" /> Message
-                        </Button>
+                        <Link to="/matches">
+                          <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
+                            <MessageSquare className="h-4 w-4 mr-2" /> Message
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   ))}
@@ -243,15 +426,61 @@ const Dashboard = () => {
                   <CardTitle>Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <Button className="w-full justify-start" variant="outline">
-                    <Plus className="mr-2 h-4 w-4" /> Add New Skill
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <MessageSquare className="mr-2 h-4 w-4" /> Check Messages
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline">
-                    <User className="mr-2 h-4 w-4" /> Update Profile
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full justify-start" variant="outline" onClick={() => setIsAddingOffered(true)}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New Skill
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add a new skill</DialogTitle>
+                        <DialogDescription>
+                          Add a skill you can teach or want to learn.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="skill-name">Skill name</Label>
+                          <Input 
+                            id="skill-name" 
+                            value={newSkill.name}
+                            onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
+                            placeholder="Enter skill name"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="category">Category</Label>
+                          <Select 
+                            value={newSkill.category}
+                            onValueChange={(value) => setNewSkill({...newSkill, category: value})}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {skillCategories.map((category) => (
+                                <SelectItem key={category} value={category}>{category}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  <Link to="/matches">
+                    <Button className="w-full justify-start" variant="outline">
+                      <MessageSquare className="mr-2 h-4 w-4" /> Check Messages
+                    </Button>
+                  </Link>
+                  <Link to="/profile">
+                    <Button className="w-full justify-start" variant="outline">
+                      <User className="mr-2 h-4 w-4" /> Update Profile
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>

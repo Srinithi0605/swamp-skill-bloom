@@ -1,9 +1,10 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -14,9 +15,28 @@ import {
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Toggle for demo purposes
-  const toggleLogin = () => setIsLoggedIn(!isLoggedIn);
+  const toggleLogin = () => {
+    const newState = !isLoggedIn;
+    setIsLoggedIn(newState);
+    
+    if (newState) {
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome back to SkillSwamp!",
+      });
+      navigate('/dashboard');
+    } else {
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account.",
+      });
+      navigate('/');
+    }
+  };
 
   return (
     <nav className="bg-white shadow-sm">

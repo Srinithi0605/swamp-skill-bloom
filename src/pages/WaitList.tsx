@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Check, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 const skillCategories = [
   "Arts & Crafts",
@@ -40,6 +41,8 @@ interface WaitListItem {
 
 const WaitList = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     skillName: '',
     category: '',
@@ -139,6 +142,19 @@ const WaitList = () => {
       description: "Your skill has been added to the waiting list.",
       variant: "default"
     });
+  };
+
+  const handleTeachSkill = (skillName: string, category: string) => {
+    toast({
+      title: "Great!",
+      description: `You're now offering to teach ${skillName}. Check your dashboard for matches.`,
+    });
+    
+    // In a real app, this would update the user's profile
+    // Here we'll simulate by navigating to dashboard
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1500);
   };
 
   return (
@@ -263,7 +279,12 @@ const WaitList = () => {
                               <Badge className="bg-primary">{item.users}</Badge>
                             </td>
                             <td className="py-4">
-                              <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-white">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-primary text-primary hover:bg-primary hover:text-white"
+                                onClick={() => handleTeachSkill(item.skillName, item.category)}
+                              >
                                 I Can Teach This
                               </Button>
                             </td>
