@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, LogIn, UserPlus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
@@ -11,31 +11,23 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from '@/contexts/AuthContext';
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, isAuthenticated, signOut } = useAuth();
 
-  // Toggle for demo purposes
-  const toggleLogin = () => {
-    const newState = !isLoggedIn;
-    setIsLoggedIn(newState);
-    
-    if (newState) {
-      toast({
-        title: "Signed in successfully",
-        description: "Welcome back to SkillSwamp!",
-      });
-      navigate('/dashboard');
-    } else {
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account.",
-      });
-      navigate('/');
-    }
+  const handleSignOut = () => {
+    signOut();
+  };
+
+  const getInitials = () => {
+    if (!user || !user.name) return 'U';
+    const names = user.name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
   return (
@@ -51,22 +43,26 @@ const NavBar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
-            <Link to="/dashboard" className="text-swamp hover:text-primary transition-colors">
-              Dashboard
-            </Link>
-            <Link to="/matches" className="text-swamp hover:text-primary transition-colors">
-              Matches
-            </Link>
-            <Link to="/waitlist" className="text-swamp hover:text-primary transition-colors">
-              Waiting List
-            </Link>
+            {isAuthenticated && (
+              <>
+                <Link to="/dashboard" className="text-swamp hover:text-primary transition-colors">
+                  Dashboard
+                </Link>
+                <Link to="/matches" className="text-swamp hover:text-primary transition-colors">
+                  Matches
+                </Link>
+                <Link to="/waitlist" className="text-swamp hover:text-primary transition-colors">
+                  Waiting List
+                </Link>
+              </>
+            )}
 
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="p-0">
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-white">US</AvatarFallback>
+                      <AvatarFallback className="bg-primary text-white">{getInitials()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -77,15 +73,22 @@ const NavBar = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/settings">Settings</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={toggleLogin}>
+                  <DropdownMenuItem onClick={handleSignOut}>
                     Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={toggleLogin} className="bg-primary hover:bg-primary-dark transition-colors">
-                Sign In
-              </Button>
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" onClick={() => navigate('/signin')} className="flex items-center">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate('/signup')} className="bg-primary hover:bg-primary-dark transition-colors">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Sign Up
+                </Button>
+              </div>
             )}
           </div>
 
@@ -107,35 +110,41 @@ const NavBar = () => {
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link to="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
-              Dashboard
-            </Link>
-            <Link to="/matches" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
-              Matches
-            </Link>
-            <Link to="/waitlist" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
-              Waiting List
-            </Link>
+            {isAuthenticated && (
+              <>
+                <Link to="/dashboard" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
+                  Dashboard
+                </Link>
+                <Link to="/matches" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
+                  Matches
+                </Link>
+                <Link to="/waitlist" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
+                  Waiting List
+                </Link>
+              </>
+            )}
             
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <>
                 <Link to="/profile" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
                   Profile
                 </Link>
                 <button
-                  onClick={toggleLogin}
+                  onClick={handleSignOut}
                   className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary"
                 >
                   Log out
                 </button>
               </>
             ) : (
-              <button
-                onClick={toggleLogin}
-                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium bg-primary text-white hover:bg-primary-dark"
-              >
-                Sign In
-              </button>
+              <>
+                <Link to="/signin" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
+                  Sign In
+                </Link>
+                <Link to="/signup" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary bg-primary text-white hover:bg-primary-dark">
+                  Sign Up
+                </Link>
+              </>
             )}
           </div>
         </div>
