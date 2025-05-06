@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Bell, Mail, Lock, Globe, Moon, Info } from 'lucide-react';
+import { Bell, Mail, Lock, Globe, Moon, Info, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 
 const Settings = () => {
   const { toast } = useToast();
@@ -136,7 +136,7 @@ const Settings = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <User className="mr-2 h-5 w-5 text-primary" />
+                    <UserIcon className="mr-2 h-5 w-5 text-primary" />
                     Account Settings
                   </CardTitle>
                   <CardDescription>
@@ -172,7 +172,7 @@ const Settings = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Settings className="mr-2 h-5 w-5 text-primary" />
+                    <SettingsIcon className="mr-2 h-5 w-5 text-primary" />
                     Preferences
                   </CardTitle>
                   <CardDescription>
@@ -257,3 +257,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
