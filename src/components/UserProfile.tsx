@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageSquare, Star } from 'lucide-react';
 import MessageDialog from './MessageDialog';
+import UserSkillsDisplay from './UserSkillsDisplay';
 
 interface Skill {
     id: string;
@@ -77,7 +78,9 @@ const UserProfile = () => {
 
             // Fix the type casting issue by explicitly defining the type
             const typedSkills: Skill[] = skillsData.map(s => ({
-                ...s.skill,
+                id: s.skill.id,
+                name: s.skill.name,
+                category: s.skill.category,
                 type: s.type as 'teach' | 'learn'
             }));
 
@@ -185,45 +188,7 @@ const UserProfile = () => {
                             <CardTitle className="dark:text-white">Skills</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3 dark:text-white">Skills I Can Teach</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {profile.skills
-                                            .filter(skill => skill.type === 'teach')
-                                            .map(skill => (
-                                                <div key={skill.id} className="border rounded-lg p-4 dark:border-gray-700">
-                                                    <h4 className="font-medium dark:text-white">{skill.name}</h4>
-                                                    <Badge variant="secondary" className="mt-2">
-                                                        {skill.category}
-                                                    </Badge>
-                                                </div>
-                                            ))}
-                                        {profile.skills.filter(skill => skill.type === 'teach').length === 0 && (
-                                            <p className="text-gray-500 dark:text-gray-400 col-span-2">No teaching skills listed</p>
-                                        )}
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3 dark:text-white">Skills I Want to Learn</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {profile.skills
-                                            .filter(skill => skill.type === 'learn')
-                                            .map(skill => (
-                                                <div key={skill.id} className="border rounded-lg p-4 dark:border-gray-700">
-                                                    <h4 className="font-medium dark:text-white">{skill.name}</h4>
-                                                    <Badge variant="outline" className="mt-2 dark:text-gray-300">
-                                                        {skill.category}
-                                                    </Badge>
-                                                </div>
-                                            ))}
-                                        {profile.skills.filter(skill => skill.type === 'learn').length === 0 && (
-                                            <p className="text-gray-500 dark:text-gray-400 col-span-2">No learning skills listed</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            <UserSkillsDisplay skills={profile.skills} />
                         </CardContent>
                     </Card>
 

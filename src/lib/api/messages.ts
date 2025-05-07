@@ -1,51 +1,82 @@
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Message {
-    id: number;
-    sender_id: string;
-    receiver_id: string;
-    content: string;
-    created_at: string;
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  match_id: string;
+  message: string;
+  timestamp: string;
 }
 
-export const getMessages = async (userId: string, otherUserId: string): Promise<Message[]> => {
+export const sendMessage = async (
+  matchId: string,
+  receiverId: string,
+  message: string
+): Promise<Message> => {
+  try {
+    const user = await supabase.auth.getUser();
+    const senderId = user.data.user?.id;
+
+    if (!senderId) throw new Error('User not authenticated');
+
     const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`)
-        .order('created_at', { ascending: true });
+      .from('messages')
+      .insert({
+        match_id: matchId,
+        sender_id: senderId,
+        receiver_id: receiverId,
+        message
+      })
+      .select()
+      .single();
 
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    return data || [];
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
 };
 
-export const sendMessage = async (
-    senderId: string,
-    receiverId: string,
-    content: string
-): Promise<Message> => {
+export const getMessages = async (matchId: string): Promise<Message[]> => {
+  try {
     const { data, error } = await supabase
-        .from('messages')
-        .insert([
-            {
-                sender_id: senderId,
-                receiver_id: receiverId,
-                content: content,
-            },
-        ])
-        .select()
-        .single();
+      .from('messages')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('timestamp', { ascending: true });
 
-    if (error) {
-        throw new Error(error.message);
-    }
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    throw error;
+  }
+};
 
-    return data;
-}; 
+export const subscribeToMessages = (
+  matchId: string,
+  callback: (message: Message) => void
+) => {
+  const channel = supabase
+    .channel(`match-${matchId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `match_id=eq.${matchId}`
+      },
+      (payload) => {
+        callback(payload.new as Message);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+};
