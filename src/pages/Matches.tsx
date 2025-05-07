@@ -26,10 +26,17 @@ interface Match {
   teacher: {
     id: string;
     email: string;
+    name: string;
   };
   learner: {
     id: string;
     email: string;
+    name: string;
+  };
+  offered_skill_id: string;
+  offered_skill: {
+    id: string;
+    name: string;
   };
 }
 
@@ -48,8 +55,8 @@ const Matches = () => {
   const [viewProfile, setViewProfile] = useState<any | null>(null);
   const [requestingSkillId, setRequestingSkillId] = useState<string>('');
   const [mySkills, setMySkills] = useState<{ teach: Set<string>, learn: Set<string> }>({ teach: new Set(), learn: new Set() });
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
-  const [selectedMySkillId, setSelectedMySkillId] = useState<string | null>(null);
+  const [selectedSkillIds, setSelectedSkillIds] = useState<{ [userId: string]: string }>({});
+  const [selectedMySkillIds, setSelectedMySkillIds] = useState<{ [userId: string]: string }>({});
   const [myOfferedSkills, setMyOfferedSkills] = useState<{ id: string, name: string }[]>([]);
 
   useEffect(() => {
@@ -93,7 +100,6 @@ const Matches = () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      // Fetch matches where the current user is either teacher or learner
       const { data: matches, error } = await supabase
         .from('matches')
         .select(`
@@ -101,26 +107,32 @@ const Matches = () => {
           teacher_id,
           learner_id,
           skill_id,
+          offered_skill_id,
           status,
           created_at,
           skill:skills (
             id,
             name
           ),
+          offered_skill:offered_skill_id (
+            id,
+            name
+          ),
           teacher:users!matches_teacher_id_fkey (
             id,
-            email
+            email,
+            name
           ),
           learner:users!matches_learner_id_fkey (
             id,
-            email
+            email,
+            name
           )
         `)
         .or(`teacher_id.eq.${user.id},learner_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
         .returns<Match[]>();
       if (error || !Array.isArray(matches)) throw error;
-      // Split matches into pending and confirmed
       const pending = matches.filter((match) => match.status === 'pending');
       const confirmed = matches.filter((match: any) => match.status === 'confirmed');
       setPendingMatches(pending);
@@ -139,7 +151,7 @@ const Matches = () => {
     try {
       const { data: allUsers, error: userError } = await supabase
         .from('users')
-        .select('id, email, avatar_url')
+        .select('id, email, name, avatar_url')
         .neq('id', user.id);
 
       console.log('Fetched users:', allUsers);
@@ -174,12 +186,8 @@ const Matches = () => {
         .from('matches')
         .update({ status: 'confirmed' })
         .eq('id', matchId);
-
       if (error) throw error;
-
-      // Refresh matches
-      fetchMatches();
-
+      await fetchMatches();
       toast({
         title: "Success",
         description: "Match confirmed successfully",
@@ -200,12 +208,8 @@ const Matches = () => {
         .from('matches')
         .delete()
         .eq('id', matchId);
-
       if (error) throw error;
-
-      // Refresh matches
-      fetchMatches();
-
+      await fetchMatches();
       toast({
         title: "Success",
         description: "Match declined",
@@ -229,17 +233,18 @@ const Matches = () => {
     return user?.id === match.teacher_id ? match.learner : match.teacher;
   };
 
-  const getInitials = (email: string) => {
+  const getInitials = (name: string | undefined, email: string) => {
+    if (name && name.trim().length > 0) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
     return email.split('@')[0].slice(0, 2).toUpperCase();
   };
 
-  const handleSendRequest = async (otherUser: any, skillId: string, asTeacher: boolean) => {
+  const handleSendRequest = async (otherUser: any, skillId: string, mySkillId: string, asTeacher: boolean) => {
     try {
-      // Validate inputs
-      if (!user?.id || !otherUser?.id || !skillId) {
+      if (!user?.id || !otherUser?.id || !skillId || !mySkillId) {
         throw new Error("Invalid input: Missing user ID, other user ID, or skill ID.");
       }
-
       // Prevent duplicate requests
       const { data: existing, error: existError } = await supabase
         .from('matches')
@@ -247,7 +252,6 @@ const Matches = () => {
         .or(`teacher_id.eq.${asTeacher ? user.id : otherUser.id},learner_id.eq.${asTeacher ? otherUser.id : user.id}`)
         .eq('skill_id', skillId)
         .in('status', ['pending', 'confirmed']);
-
       if (existError) throw existError;
       if (existing && existing.length > 0) {
         toast({
@@ -257,27 +261,23 @@ const Matches = () => {
         });
         return;
       }
-
-      // Insert match request
+      // Insert match request with offered_skill_id
       const { data: newMatch, error } = await supabase
         .from('matches')
         .insert({
           teacher_id: asTeacher ? user.id : otherUser.id,
           learner_id: asTeacher ? otherUser.id : user.id,
           skill_id: skillId,
+          offered_skill_id: mySkillId,
           status: 'pending',
         })
         .select()
         .single();
-
       if (error) throw error;
-
-      // Refresh matches for both users
       await fetchMatches();
-
-      // Clear selected skill
-      setSelectedSkillId(null);
-
+      // Clear only the dropdowns for this user
+      setSelectedSkillIds(prev => ({ ...prev, [otherUser.id]: '' }));
+      setSelectedMySkillIds(prev => ({ ...prev, [otherUser.id]: '' }));
       toast({
         title: 'Request sent',
         description: 'Your match request has been sent!',
@@ -293,24 +293,14 @@ const Matches = () => {
     }
   };
 
-  const handleSkillSelect = (skillId: string) => {
-    setSelectedSkillId(skillId);
-  };
-
-  const handleMySkillSelect = (skillId: string) => {
-    setSelectedMySkillId(skillId);
-  };
-
   const handleInviteClick = (otherUser: any) => {
-    if (!selectedSkillId || !selectedMySkillId) {
-      toast({
-        title: 'Error',
-        description: 'Please select both skills before inviting.',
-        variant: 'destructive'
-      });
+    const skillId = selectedSkillIds[otherUser.id];
+    const mySkillId = selectedMySkillIds[otherUser.id];
+    if (!skillId || !mySkillId) {
+      toast({ title: 'Error', description: 'Please select both skills before inviting.', variant: 'destructive' });
       return;
     }
-    handleSendRequest(otherUser, selectedSkillId, true);
+    handleSendRequest(otherUser, skillId, mySkillId, true);
   };
 
   console.log('Rendering potentialMatches:', potentialMatches);
@@ -354,19 +344,23 @@ const Matches = () => {
                               <div className="flex items-center space-x-3 mb-4">
                                 <Avatar className="h-12 w-12 border-2 border-white">
                                   <AvatarFallback className="bg-primary-dark text-white">
-                                    {getInitials(otherUser.email)}
+                                    {getInitials(otherUser.name, otherUser.email)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <h3 className="font-bold">{otherUser.email}</h3>
+                                  <h3 className="font-bold">{otherUser.name || otherUser.email}</h3>
                                 </div>
                               </div>
                             </div>
-
                             <div className="space-y-2">
                               {isInviteSender ? (
                                 <div className="bg-white/20 rounded p-3 text-white text-center">
                                   Invite sent for <span className="font-bold">{match.skill.name}</span>
+                                  {match.offered_skill?.name && (
+                                    <> trading <span className="font-bold">{match.offered_skill.name}</span></>
+                                  )}
+                                  <br />
+                                  <span className="italic text-sm">(waiting for response)</span>
                                 </div>
                               ) : (
                                 <>
@@ -387,7 +381,6 @@ const Matches = () => {
                               )}
                             </div>
                           </div>
-
                           <div className="p-6 flex-1">
                             <div className="flex flex-col md:flex-row gap-6">
                               <div className="flex-1">
@@ -397,7 +390,6 @@ const Matches = () => {
                                 </div>
                               </div>
                             </div>
-
                             <div className="mt-6">
                               <h4 className="text-sm font-medium text-muted-foreground mb-2">Send a message:</h4>
                               <div className="flex">
@@ -441,11 +433,11 @@ const Matches = () => {
                               <div className="flex items-center space-x-3 mb-4">
                                 <Avatar className="h-12 w-12 border-2 border-white">
                                   <AvatarFallback className="bg-green-700 text-white">
-                                    {getInitials(otherUser.email)}
+                                    {getInitials(otherUser.name, otherUser.email)}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <h3 className="font-bold">{otherUser.email}</h3>
+                                  <h3 className="font-bold">{otherUser.name || otherUser.email}</h3>
                                 </div>
                               </div>
 
@@ -487,7 +479,7 @@ const Matches = () => {
                               <div className="p-4 rounded-lg bg-green-50 border border-green-200">
                                 <p className="text-sm text-gray-800">
                                   <span className="font-medium">Congratulations!</span> You've confirmed this skill swap.
-                                  Schedule a time to meet with {otherUser.email.split('@')[0]} and start sharing knowledge.
+                                  Schedule a time to meet with {otherUser.name || otherUser.email.split('@')[0]} and start sharing knowledge.
                                 </p>
                               </div>
                             </div>
@@ -516,10 +508,10 @@ const Matches = () => {
                     <><Card key={user.id} className="p-4 shadow-md border border-gray-200">
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
-                          <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                          <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-bold text-lg">{user.email}</h3>
+                          <h3 className="font-bold text-lg">{user.name || user.email}</h3>
                         </div>
                       </div>
                       <div className="mt-4">
@@ -528,8 +520,8 @@ const Matches = () => {
                           {user.skillsTeach.map((skill: any) => (
                             <Badge
                               key={skill.skill.id}
-                              className={`${selectedSkillId === skill.skill.id ? 'bg-primary-dark' : 'bg-primary'} text-white cursor-pointer`}
-                              onClick={() => handleSkillSelect(skill.skill.id)}
+                              className={`${selectedSkillIds[user.id] === skill.skill.id ? 'bg-primary-dark' : 'bg-primary'} text-white cursor-pointer`}
+                              onClick={() => setSelectedSkillIds(prev => ({ ...prev, [user.id]: skill.skill.id }))}
                             >
                               {skill.skill.name}
                             </Badge>
@@ -551,8 +543,8 @@ const Matches = () => {
                             <label className="text-sm text-gray-600 mb-1 block">Their Offered Skills:</label>
                             <select
                               className="w-full p-2 border rounded"
-                              value={selectedSkillId || ''}
-                              onChange={(e) => handleSkillSelect(e.target.value)}
+                              value={selectedSkillIds[user.id] || ''}
+                              onChange={e => setSelectedSkillIds(prev => ({ ...prev, [user.id]: e.target.value }))}
                             >
                               <option value="" disabled>Select a skill they offer</option>
                               {user.skillsTeach.map((theirSkill: any) => (
@@ -567,8 +559,8 @@ const Matches = () => {
                             <label className="text-sm text-gray-600 mb-1 block">Your Skills to Trade:</label>
                             <select
                               className="w-full p-2 border rounded"
-                              value={selectedMySkillId || ''}
-                              onChange={(e) => handleMySkillSelect(e.target.value)}
+                              value={selectedMySkillIds[user.id] || ''}
+                              onChange={e => setSelectedMySkillIds(prev => ({ ...prev, [user.id]: e.target.value }))}
                             >
                               <option value="" disabled>Select a skill you can offer</option>
                               {myOfferedSkills.map((skill) => (
@@ -583,7 +575,7 @@ const Matches = () => {
                         <Button
                           className="w-full bg-primary text-white hover:bg-primary-dark"
                           onClick={() => handleInviteClick(user)}
-                          disabled={!selectedSkillId || !selectedMySkillId}
+                          disabled={!selectedSkillIds[user.id] || !selectedMySkillIds[user.id]}
                         >
                           Invite to Trade
                         </Button>
@@ -612,8 +604,8 @@ const Matches = () => {
           onClose={() => setMessageDialogOpen(false)}
           matchId={selectedMatch.id}
           otherUserId={getOtherUser(selectedMatch).id}
-          otherUserName={getOtherUser(selectedMatch).email}
-          otherUserInitials={getInitials(getOtherUser(selectedMatch).email)}
+          otherUserName={getOtherUser(selectedMatch).name || getOtherUser(selectedMatch).email}
+          otherUserInitials={getInitials(getOtherUser(selectedMatch).name, getOtherUser(selectedMatch).email)}
         />
       )}
       {reviewDialogOpen && reviewMatch && (
