@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +75,12 @@ const UserProfile = () => {
 
             if (skillsError) throw skillsError;
 
+            // Fix the type casting issue by explicitly defining the type
+            const typedSkills = skillsData.map(s => ({
+                ...s.skill,
+                type: s.type as 'teach' | 'learn'
+            }));
+
             // Fetch user availability
             const { data: availabilityData, error: availabilityError } = await supabase
                 .from('user_availability')
@@ -84,10 +91,7 @@ const UserProfile = () => {
 
             setProfile({
                 ...userData,
-                skills: skillsData.map(s => ({
-                    ...s.skill,
-                    type: s.type
-                })),
+                skills: typedSkills,
                 availability: availabilityData
             });
         } catch (error) {
@@ -230,13 +234,15 @@ const UserProfile = () => {
             </div>
 
             <MessageDialog
-                isOpen={isMessageDialogOpen}
+                open={isMessageDialogOpen}
                 onClose={() => setIsMessageDialogOpen(false)}
-                receiverId={profile.id}
-                receiverName={profile.name}
+                matchId={profile.id}
+                otherUserId={profile.id}
+                otherUserName={profile.name}
+                otherUserInitials={profile.name.split(' ').map(n => n[0]).join('')}
             />
         </div>
     );
 };
 
-export default UserProfile; 
+export default UserProfile;

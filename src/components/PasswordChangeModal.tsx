@@ -65,7 +65,6 @@ const PasswordChangeModal = ({ open, onOpenChange }: PasswordChangeModalProps) =
       setIsSubmitting(true);
       
       if (user?.id) {
-        // In a real implementation, this would call the API
         await updateUserPassword(user.id, currentPassword, newPassword);
         
         toast({
