@@ -65,6 +65,28 @@ const Matches = () => {
       fetchMyOfferedSkills();
       fetchMatches();
       fetchPotentialMatches();
+
+      // Subscribe to real-time updates for matches
+      const matchesSubscription = supabase
+        .channel('matches_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'matches',
+            filter: `teacher_id=eq.${user.id},learner_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Match change received:', payload);
+            fetchMatches(); // Refresh matches when any change occurs
+          }
+        )
+        .subscribe();
+
+      return () => {
+        matchesSubscription.unsubscribe();
+      };
     }
   }, [user]);
 
@@ -249,7 +271,9 @@ const Matches = () => {
       const { data: existing, error: existError } = await supabase
         .from('matches')
         .select('id')
-        .or(`teacher_id.eq.${asTeacher ? user.id : otherUser.id},learner_id.eq.${asTeacher ? otherUser.id : user.id}`)
+        .or(
+          `and(teacher_id.eq.${user.id},learner_id.eq.${otherUser.id}),and(teacher_id.eq.${otherUser.id},learner_id.eq.${user.id})`
+        )
         .eq('skill_id', skillId)
         .in('status', ['pending', 'confirmed']);
       if (existError) throw existError;

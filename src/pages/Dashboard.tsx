@@ -243,49 +243,71 @@ const Dashboard = () => {
     if (!user || skillsOffered.length === 0 || skillsWanted.length === 0) return;
 
     try {
-      if (!skillsWanted.length) {
-        console.warn('No wanted skills available for matching.');
-        return;
-      }
+        // Fetch users who want skills that the current user offers
+        const { data: potentialMatches, error: matchError } = await supabase
+            .from('user_skills')
+            .select(`
+                user_id,
+                type,
+                skills (
+                    id,
+                    name
+                ),
+                users (
+                    id,
+                    email
+                )
+            `)
+            .in('skill_id', skillsOffered.map(skill => skill.id))
+            .eq('type', 'wanted')
+            .neq('user_id', user.id);
 
-      // Get all users who want skills that the current user offers
-      const { data: potentialMatches, error: matchError } = await supabase
-        .from('user_skills')
-        .select(`
-          user_id,
-          type,
-          skills (
-            id,
-            name
-          ),
-          users (
-            id,
-            email
-          )
-        `)
-        .in('skill_id', skillsOffered.map(skill => skill.id))
-        .eq('type', 'wanted')
-        .neq('user_id', user.id);
+        if (matchError) throw matchError;
 
-      if (matchError) throw matchError;
+        // Fetch users who offer skills that the current user wants
+        const { data: offeredMatches, error: offeredError } = await supabase
+            .from('user_skills')
+            .select(`
+                user_id,
+                type,
+                skills (
+                    id,
+                    name
+                ),
+                users (
+                    id,
+                    email
+                )
+            `)
+            .in('skill_id', skillsWanted.map(skill => skill.id))
+            .eq('type', 'offered')
+            .neq('user_id', user.id);
 
-      // Transform the data into our MatchUser format
-      const transformedMatches = potentialMatches.map(match => ({
-        id: match.user_id,
-        name: match.users?.email?.split('@')[0] || 'Unknown User',
-        skillOffered: match.skills?.name || 'Unknown Skill',
-        skillRequested: skillsWanted[0]?.name || 'Unknown Skill',
-        matchPercentage: 80 // This should be calculated based on skill compatibility
-      }));
+        if (offeredError) throw offeredError;
 
-      setMatches(transformedMatches);
+        // Combine and transform the data into the MatchUser format
+        const transformedMatches = potentialMatches.map(match => {
+            const offeredSkill = offeredMatches.find(
+                offered => offered.user_id === match.user_id
+            );
+
+            return {
+                id: match.user_id,
+                name: match.users?.email?.split('@')[0] || 'Unknown User',
+                skillOffered: offeredSkill?.skills?.name || 'Unknown Skill',
+                skillRequested: match.skills?.name || 'Unknown Skill',
+                
+            };
+        });
+
+  
     } catch (error) {
-      console.error('Error fetching matches:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load potential matches. Please try again.",
-        variant: "destructive"
-      });
+        console.error('Error fetching matches:', error);
+        toast({
+            title: "Error",
+            description: "Failed to load potential matches. Please try again.",
+            variant: "destructive"
+        });
     }
   };
 
@@ -652,10 +674,6 @@ const Dashboard = () => {
                             <p className="text-sm text-gray-500">
                               Offers: {match.skillOffered} | Wants: {match.skillRequested}
                             </p>
-                            <div className="flex items-center mt-1">
-                              <Progress value={match.matchPercentage} className="w-24" />
-                              <span className="ml-2 text-sm">{match.matchPercentage}% match</span>
-                            </div>
                           </div>
                         </div>
                         <Button
@@ -755,7 +773,7 @@ const Dashboard = () => {
                   </Dialog>
                   <Link to="/matches">
                     <Button className="w-full justify-start" variant="outline">
-                      <MessageSquare className="mr-2 h-4 w-4" /> Check Messages
+                      <MessageSquare className="mr-2 h-4 w-4" /> Check Matches
                     </Button>
                   </Link>
                   <Link to="/profile">
