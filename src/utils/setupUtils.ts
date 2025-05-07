@@ -6,7 +6,7 @@ export const setupMessagesTable = async () => {
   try {
     const { error } = await supabase.rpc('exec_sql', {
       query: 'ALTER TABLE messages REPLICA IDENTITY FULL;'
-    });
+    } as any); // Use type assertion to bypass TypeScript checking
     
     if (error) {
       console.error('Error setting REPLICA IDENTITY:', error);
