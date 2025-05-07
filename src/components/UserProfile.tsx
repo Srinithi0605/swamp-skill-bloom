@@ -76,7 +76,7 @@ const UserProfile = () => {
             if (skillsError) throw skillsError;
 
             // Fix the type casting issue by explicitly defining the type
-            const typedSkills = skillsData.map(s => ({
+            const typedSkills: Skill[] = skillsData.map(s => ({
                 ...s.skill,
                 type: s.type as 'teach' | 'learn'
             }));
@@ -126,43 +126,43 @@ const UserProfile = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-neutral flex items-center justify-center">
-                <p className="text-lg">Loading profile...</p>
+            <div className="min-h-screen bg-neutral dark:bg-gray-900 flex items-center justify-center">
+                <p className="text-lg dark:text-white">Loading profile...</p>
             </div>
         );
     }
 
     if (!profile) {
         return (
-            <div className="min-h-screen bg-neutral flex items-center justify-center">
-                <p className="text-lg">Profile not found</p>
+            <div className="min-h-screen bg-neutral dark:bg-gray-900 flex items-center justify-center">
+                <p className="text-lg dark:text-white">Profile not found</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-neutral py-8">
+        <div className="min-h-screen bg-neutral dark:bg-gray-900 py-8">
             <div className="container mx-auto px-4">
-                <Card className="mb-8">
+                <Card className="mb-8 dark:bg-gray-800 dark:border-gray-700">
                     <CardHeader>
                         <div className="flex items-center space-x-4">
                             <Avatar className="h-16 w-16">
-                                <AvatarFallback className="text-lg">
+                                <AvatarFallback className="text-lg dark:bg-gray-700">
                                     {profile.name.split(' ').map(n => n[0]).join('')}
                                 </AvatarFallback>
                             </Avatar>
                             <div>
-                                <CardTitle className="text-2xl">{profile.name}</CardTitle>
-                                <p className="text-gray-500">{profile.location}</p>
+                                <CardTitle className="text-2xl dark:text-white">{profile.name}</CardTitle>
+                                <p className="text-gray-500 dark:text-gray-400">{profile.location}</p>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-gray-700 mb-6">{profile.bio}</p>
+                        <p className="text-gray-700 dark:text-gray-300 mb-6">{profile.bio}</p>
                         <div className="flex space-x-4">
                             <Button
                                 onClick={() => setIsMessageDialogOpen(true)}
-                                className="bg-primary hover:bg-primary-dark"
+                                className="bg-primary hover:bg-primary-dark dark:bg-blue-600 dark:hover:bg-blue-700"
                             >
                                 <MessageSquare className="mr-2 h-4 w-4" />
                                 Send Message
@@ -170,6 +170,7 @@ const UserProfile = () => {
                             <Button
                                 onClick={handleExpressInterest}
                                 variant="outline"
+                                className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
                             >
                                 <Star className="mr-2 h-4 w-4" />
                                 Express Interest
@@ -179,54 +180,71 @@ const UserProfile = () => {
                 </Card>
 
                 <div className="grid md:grid-cols-2 gap-8">
-                    <Card>
+                    <Card className="dark:bg-gray-800 dark:border-gray-700">
                         <CardHeader>
-                            <CardTitle>Skills</CardTitle>
+                            <CardTitle className="dark:text-white">Skills</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 <div>
-                                    <h3 className="text-lg font-semibold mb-2">Teaching</h3>
-                                    <div className="flex flex-wrap gap-2">
+                                    <h3 className="text-lg font-semibold mb-3 dark:text-white">Skills I Can Teach</h3>
+                                    <div className="grid grid-cols-2 gap-4">
                                         {profile.skills
                                             .filter(skill => skill.type === 'teach')
                                             .map(skill => (
-                                                <Badge key={skill.id} variant="secondary">
-                                                    {skill.name}
-                                                </Badge>
+                                                <div key={skill.id} className="border rounded-lg p-4 dark:border-gray-700">
+                                                    <h4 className="font-medium dark:text-white">{skill.name}</h4>
+                                                    <Badge variant="secondary" className="mt-2">
+                                                        {skill.category}
+                                                    </Badge>
+                                                </div>
                                             ))}
+                                        {profile.skills.filter(skill => skill.type === 'teach').length === 0 && (
+                                            <p className="text-gray-500 dark:text-gray-400 col-span-2">No teaching skills listed</p>
+                                        )}
                                     </div>
                                 </div>
+                                
                                 <div>
-                                    <h3 className="text-lg font-semibold mb-2">Learning</h3>
-                                    <div className="flex flex-wrap gap-2">
+                                    <h3 className="text-lg font-semibold mb-3 dark:text-white">Skills I Want to Learn</h3>
+                                    <div className="grid grid-cols-2 gap-4">
                                         {profile.skills
                                             .filter(skill => skill.type === 'learn')
                                             .map(skill => (
-                                                <Badge key={skill.id} variant="outline">
-                                                    {skill.name}
-                                                </Badge>
+                                                <div key={skill.id} className="border rounded-lg p-4 dark:border-gray-700">
+                                                    <h4 className="font-medium dark:text-white">{skill.name}</h4>
+                                                    <Badge variant="outline" className="mt-2 dark:text-gray-300">
+                                                        {skill.category}
+                                                    </Badge>
+                                                </div>
                                             ))}
+                                        {profile.skills.filter(skill => skill.type === 'learn').length === 0 && (
+                                            <p className="text-gray-500 dark:text-gray-400 col-span-2">No learning skills listed</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="dark:bg-gray-800 dark:border-gray-700">
                         <CardHeader>
-                            <CardTitle>Availability</CardTitle>
+                            <CardTitle className="dark:text-white">Availability</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
-                                {profile.availability.map((slot, index) => (
-                                    <div key={index} className="flex justify-between items-center">
-                                        <span className="font-medium">{slot.day}</span>
-                                        <span className="text-gray-500">
-                                            {slot.start_time} - {slot.end_time}
-                                        </span>
-                                    </div>
-                                ))}
+                                {profile.availability.length > 0 ? (
+                                    profile.availability.map((slot, index) => (
+                                        <div key={index} className="flex justify-between items-center p-3 border rounded-md dark:border-gray-700">
+                                            <span className="font-medium dark:text-white">{slot.day}</span>
+                                            <span className="text-gray-500 dark:text-gray-400">
+                                                {slot.start_time} - {slot.end_time}
+                                            </span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 dark:text-gray-400">No availability set</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

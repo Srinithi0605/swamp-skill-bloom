@@ -29,13 +29,10 @@ export const updateUserEmail = async (userId: string, newEmail: string): Promise
 };
 
 export const updateUserPassword = async (
-    userId: string,
-    currentPassword: string,
     newPassword: string
 ): Promise<void> => {
     try {
-        // We don't need to verify the current password on the client side
-        // Supabase Auth will handle this when updating the password
+        // Using Supabase Auth to update the password
         const { error } = await supabase.auth.updateUser({
             password: newPassword
         });

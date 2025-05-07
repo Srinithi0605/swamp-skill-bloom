@@ -5,7 +5,7 @@ export const setupMessagesTable = async () => {
   // Set REPLICA IDENTITY to FULL for the messages table to enable realtime
   try {
     const { error } = await supabase.rpc('exec_sql', {
-      sql: 'ALTER TABLE messages REPLICA IDENTITY FULL;'
+      query: 'ALTER TABLE messages REPLICA IDENTITY FULL;'  // Changed from 'sql' to 'query'
     });
     
     if (error) {
