@@ -61,7 +61,8 @@ const SignUp = () => {
           .upsert({
             id: user.id,
             email: user.email,
-            name: values.name
+            name: values.name,
+            password_hash: "" // Provide a default or hashed password if required
           });
       }
       navigate('/profile/setup');
