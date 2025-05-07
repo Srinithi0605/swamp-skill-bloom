@@ -1,6 +1,5 @@
 
 interface UserSkill {
-  id: string;
   type: string;
   skill: {
     id: string;

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,10 +12,11 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Matches from "./pages/Matches";
-import WaitList from "./pages/WaitList";
+import WaitingList from "./pages/WaitingList";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import UserProfile from "./components/UserProfile";
 
 const queryClient = new QueryClient();
 
@@ -44,12 +46,17 @@ const App = () => (
             } />
             <Route path="/waitlist" element={
               <ProtectedRoute>
-                <WaitList />
+                <WaitingList />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile/:userId" element={
+              <ProtectedRoute>
+                <UserProfile />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

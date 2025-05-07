@@ -11,20 +11,20 @@ export interface WaitingListEntry {
 
 export const addToWaitingList = async (email: string, desiredSkill: string): Promise<WaitingListEntry> => {
   try {
-    const user = supabase.auth.getUser();
+    const user = await supabase.auth.getUser();
     
     const { data, error } = await supabase
       .from('waiting_list')
       .insert({
         email,
         desired_skill: desiredSkill,
-        user_id: (await user).data.user?.id
+        user_id: user.data.user?.id
       })
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data as WaitingListEntry;
   } catch (error) {
     console.error('Error adding to waiting list:', error);
     throw error;
@@ -39,7 +39,7 @@ export const getWaitingList = async (): Promise<WaitingListEntry[]> => {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return data as WaitingListEntry[];
   } catch (error) {
     console.error('Error fetching waiting list:', error);
     throw error;

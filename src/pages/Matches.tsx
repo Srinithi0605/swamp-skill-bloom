@@ -175,11 +175,11 @@ const Matches = () => {
         (u as any).skills = skills || [];
         
         // Calculate match percentage
-        const matchPercentage = calculateMatchPercentage(currentUser, u);
+        const matchPercentage = calculateMatchPercentage(currentUser as any, u as any);
         percentages[u.id] = matchPercentage;
         
         // Get skill matches
-        matchesMap[u.id] = getSkillMatches(currentUser, u);
+        matchesMap[u.id] = getSkillMatches(currentUser as any, u as any);
         
         console.log(`User ${u.email} match percentage:`, matchPercentage);
       }
@@ -340,7 +340,7 @@ const Matches = () => {
       toast({ title: 'Error', description: 'Please select a skill before inviting.', variant: 'destructive' });
       return;
     }
-    handleSendRequest(otherUser, selectedSkillId, true);
+    handleSendRequest(otherUser, selectedSkillId, requestingSkillId);
   };
 
   const renderPotentialMatches = () => {
