@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,11 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Bell, Mail, Lock, Globe, Moon, Info, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Settings = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [settings, setSettings] = useState({
-    email: 'user@example.com',
+    email: user?.email || '',
     emailNotifications: true,
     newMatch: true,
     newMessage: true,
@@ -52,25 +53,25 @@ const Settings = () => {
       description: "Your preferences have been updated.",
     });
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
       <NavBar />
-      
+
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-swamp">Settings</h1>
             <p className="text-gray-500 mt-1">Manage your account preferences</p>
           </div>
-          
+
           <Tabs defaultValue="notifications" className="space-y-6">
             <TabsList className="grid grid-cols-3 mb-4">
               <TabsTrigger value="notifications">Notifications</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
               <TabsTrigger value="preferences">Preferences</TabsTrigger>
             </TabsList>
-            
+
             {/* Notification Settings */}
             <TabsContent value="notifications">
               <Card>
@@ -95,7 +96,7 @@ const Settings = () => {
                       onCheckedChange={(checked) => handleSwitchChange('emailNotifications', checked)}
                     />
                   </div>
-                  
+
                   <div className="space-y-4 pl-6 border-l-2 border-neutral">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="newMatch" className="text-sm">New match found</Label>
@@ -106,7 +107,7 @@ const Settings = () => {
                         disabled={!settings.emailNotifications}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <Label htmlFor="newMessage" className="text-sm">New messages</Label>
                       <Switch
@@ -116,7 +117,7 @@ const Settings = () => {
                         disabled={!settings.emailNotifications}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <Label htmlFor="skillInterest" className="text-sm">Skill interest updates</Label>
                       <Switch
@@ -130,7 +131,7 @@ const Settings = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* Account Settings */}
             <TabsContent value="account">
               <Card>
@@ -146,14 +147,14 @@ const Settings = () => {
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input 
+                    <Input
                       id="email"
                       type="email"
                       value={settings.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                     />
                   </div>
-                  
+
                   <div className="pt-4">
                     <Button variant="outline" className="mr-2">
                       <Lock className="mr-2 h-4 w-4" />
@@ -166,7 +167,7 @@ const Settings = () => {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             {/* Preferences */}
             <TabsContent value="preferences">
               <Card>
@@ -191,14 +192,14 @@ const Settings = () => {
                       onCheckedChange={(checked) => handleSwitchChange('darkMode', checked)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="timezone" className="flex items-center">
                       <Globe className="mr-2 h-4 w-4" /> Time Zone
                     </Label>
-                    <select 
+                    <select
                       id="timezone"
-                      className="w-full p-2 border rounded-md" 
+                      className="w-full p-2 border rounded-md"
                       value={settings.timezone}
                       onChange={(e) => handleInputChange('timezone', e.target.value)}
                     >
@@ -209,7 +210,7 @@ const Settings = () => {
                       <option value="Europe/London">London (GMT)</option>
                     </select>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="matchRadius" className="text-base flex items-center">
@@ -226,12 +227,12 @@ const Settings = () => {
                       className="py-4"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="profilePrivacy" className="text-base">Profile Privacy</Label>
-                    <select 
+                    <select
                       id="profilePrivacy"
-                      className="w-full p-2 border rounded-md" 
+                      className="w-full p-2 border rounded-md"
                       value={settings.profilePrivacy}
                       onChange={(e) => handleInputChange('profilePrivacy', e.target.value)}
                     >
@@ -244,7 +245,7 @@ const Settings = () => {
               </Card>
             </TabsContent>
           </Tabs>
-          
+
           <div className="mt-6 flex justify-end">
             <Button onClick={handleSave} className="bg-primary hover:bg-primary-dark">
               Save Changes
