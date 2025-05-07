@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.user) {
         toast({
           title: "Welcome back!",
-          description: `You've successfully signed in to SkillSwamp.`,
+          description: `You've successfully signed in to SkillSwap.`,
         });
       }
       
