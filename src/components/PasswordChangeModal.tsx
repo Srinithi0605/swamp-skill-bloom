@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserPassword } from '@/lib/api/users';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PasswordChangeModalProps {
   open: boolean;
@@ -64,15 +65,26 @@ const PasswordChangeModal = ({ open, onOpenChange }: PasswordChangeModalProps) =
     try {
       setIsSubmitting(true);
       
-      if (user?.id) {
-        await updateUserPassword(user.id, currentPassword, newPassword);
-        
-        toast({
-          title: "Success",
-          description: "Password changed successfully",
-        });
-        handleClose();
+      // First verify the current password is correct
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword
+      });
+      
+      if (signInError) {
+        setValidationError('Current password is incorrect');
+        setIsSubmitting(false);
+        return;
       }
+      
+      // Then update to the new password
+      await updateUserPassword(newPassword);
+      
+      toast({
+        title: "Success",
+        description: "Password changed successfully",
+      });
+      handleClose();
     } catch (error) {
       console.error('Error changing password:', error);
       let errorMessage = 'Failed to change password';

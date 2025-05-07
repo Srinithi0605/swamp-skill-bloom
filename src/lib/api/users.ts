@@ -1,63 +1,17 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export interface User {
-    id: string;
-    email: string;
-    name?: string;
-    avatar_url?: string;
-}
-
-export const updateUserEmail = async (userId: string, newEmail: string): Promise<void> => {
+export const updateUserPassword = async (newPassword: string): Promise<void> => {
+  try {
     const { error } = await supabase.auth.updateUser({
-        email: newEmail
+      password: newPassword
     });
-
+    
     if (error) {
-        throw new Error(error.message);
+      throw new Error(error.message);
     }
-
-    // Update email in users table
-    const { error: updateError } = await supabase
-        .from('users')
-        .update({ email: newEmail })
-        .eq('id', userId);
-
-    if (updateError) {
-        throw new Error(updateError.message);
-    }
+  } catch (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
 };
-
-export const updateUserPassword = async (
-    newPassword: string
-): Promise<void> => {
-    try {
-        // Using Supabase Auth to update the password
-        const { error } = await supabase.auth.updateUser({
-            password: newPassword
-        });
-
-        if (error) {
-            throw new Error(error.message);
-        }
-    } catch (error) {
-        if (error instanceof Error) {
-            throw error;
-        }
-        throw new Error('Failed to update password');
-    }
-};
-
-export const getUserProfile = async (userId: string): Promise<User> => {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    return data;
-}; 
