@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { supabase } from '@/integrations/supabase/client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +53,17 @@ const SignUp = () => {
     const success = await signUp(values.email, values.password, values.name);
     setIsSubmitting(false);
     if (success) {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('users')
+          .upsert({
+            id: user.id,
+            email: user.email,
+            name: values.name
+          });
+      }
       navigate('/profile/setup');
     }
   };
