@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Bell, Mail, Lock, Globe, Moon, Info, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [settings, setSettings] = useState({
     email: user?.email || '',
     emailNotifications: true,
@@ -156,7 +159,11 @@ const Settings = () => {
                   </div>
 
                   <div className="pt-4">
-                    <Button variant="outline" className="mr-2">
+                    <Button 
+                      variant="outline" 
+                      className="mr-2"
+                      onClick={() => setIsPasswordModalOpen(true)}
+                    >
                       <Lock className="mr-2 h-4 w-4" />
                       Change Password
                     </Button>
@@ -253,9 +260,13 @@ const Settings = () => {
           </div>
         </div>
       </main>
+      
+      <PasswordChangeModal 
+        open={isPasswordModalOpen}
+        onOpenChange={setIsPasswordModalOpen}
+      />
     </div>
   );
 };
 
 export default Settings;
-

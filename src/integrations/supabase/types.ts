@@ -107,6 +107,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ratings: {
         Row: {
           comment: string | null
@@ -135,61 +176,77 @@ export type Database = {
           rater_id?: string
           rating?: number
         }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          category: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_availability: {
+        Row: {
+          day: string
+          end_time: string
+          id: string
+          start_time: string
+          user_id: string | null
+        }
+        Insert: {
+          day: string
+          end_time: string
+          id?: string
+          start_time: string
+          user_id?: string | null
+        }
+        Update: {
+          day?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          user_id?: string | null
+        }
         Relationships: [
           {
-            foreignKeyName: "ratings_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ratings_ratee_id_fkey"
-            columns: ["ratee_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ratings_rater_id_fkey"
-            columns: ["rater_id"]
+            foreignKeyName: "user_availability_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
-      skills: {
-        Row: {
-          id: string
-          name: string
-        }
-        Insert: {
-          id?: string
-          name: string
-        }
-        Update: {
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
       user_skills: {
         Row: {
           id: string
-          skill_id: string
+          skill_id: string | null
+          skill_name: string | null
           type: string
           user_id: string
         }
         Insert: {
           id?: string
-          skill_id: string
+          skill_id?: string | null
+          skill_name?: string | null
           type: string
           user_id: string
         }
         Update: {
           id?: string
-          skill_id?: string
+          skill_id?: string | null
+          skill_name?: string | null
           type?: string
           user_id?: string
         }
@@ -213,24 +270,36 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           email: string
           id: string
+          location: string | null
+          name: string | null
           password_hash: string
+          profile_completed: boolean | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email: string
           id?: string
+          location?: string | null
+          name?: string | null
           password_hash: string
+          profile_completed?: boolean | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           email?: string
           id?: string
+          location?: string | null
+          name?: string | null
           password_hash?: string
+          profile_completed?: boolean | null
         }
         Relationships: []
       }
