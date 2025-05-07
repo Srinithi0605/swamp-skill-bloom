@@ -35,7 +35,7 @@ const Index = () => {
                 onClick={() => navigate('/signup')} 
                 className="bg-primary hover:bg-primary/90 text-white px-8 py-6 text-lg rounded-lg shadow-md"
               >
-                Join the Swamp
+                Join the Swap
               </Button>
               <Button 
                 size="lg" 

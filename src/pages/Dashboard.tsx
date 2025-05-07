@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,9 +26,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MessageSystem from '@/components/MessageSystem';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Skill {
-  id: number;
+  id: string;
   name: string;
   category: string;
 }
@@ -39,6 +41,13 @@ interface MatchUser {
   skillOffered: string;
   skillRequested: string;
   matchPercentage: number;
+}
+
+interface Notification {
+  id: string;
+  type: 'message' | 'match' | 'profile';
+  title: string;
+  timestamp: string;
 }
 
 const skillCategories = [
@@ -54,45 +63,249 @@ const skillCategories = [
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
-  // Sample data for demonstration
-  const [skillsOffered, setSkillsOffered] = useState<Skill[]>([
-    { id: 1, name: 'JavaScript Programming', category: 'Technology' },
-    { id: 2, name: 'French Language', category: 'Languages' },
-    { id: 3, name: 'Guitar', category: 'Music' },
-  ]);
-
-  const [skillsWanted, setSkillsWanted] = useState<Skill[]>([
-    { id: 1, name: 'Photography', category: 'Arts' },
-    { id: 2, name: 'Cooking', category: 'Food' },
-  ]);
-
-  const [newSkill, setNewSkill] = useState({ name: '', category: '' });
+  const [skillsOffered, setSkillsOffered] = useState<Skill[]>([]);
+  const [skillsWanted, setSkillsWanted] = useState<Skill[]>([]);
+  const [newSkill, setNewSkill] = useState({ name: '', category: skillCategories[0] });
   const [isAddingOffered, setIsAddingOffered] = useState(false);
+  const [matches, setMatches] = useState<MatchUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const matches: MatchUser[] = [
-    {
-      id: "b1e8c1a2-1234-4cde-9abc-1234567890ab",
-      name: 'Alex Johnson',
-      skillOffered: 'Photography',
-      skillRequested: 'JavaScript Programming',
-      matchPercentage: 92
-    },
-    {
-      id: "c2f9d2b3-5678-4def-8bcd-2345678901bc",
-      name: 'Sam Rivera',
-      skillOffered: 'Cooking',
-      skillRequested: 'French Language',
-      matchPercentage: 85
-    },
-  ];
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
 
-  // Profile completion calculation
-  const profileCompletion = 70; // percentage
+      try {
+        // Fetch recent messages
+        const { data: messages, error: messageError } = await supabase
+          .from('messages')
+          .select(`
+            id,
+            sender_id,
+            receiver_id,
+            message,
+            timestamp,
+            users!messages_sender_id_fkey (
+              email
+            )
+          `)
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order('timestamp', { ascending: false })
+          .limit(3);
 
-  const handleAddSkill = () => {
-    if (!newSkill.name || !newSkill.category) {
+        if (messageError) throw messageError;
+
+        // Transform messages into notifications
+        const messageNotifications = messages.map(msg => ({
+          id: msg.id,
+          type: 'message' as const,
+          title: msg.sender_id === user.id 
+            ? `Message sent to ${msg.users?.email?.split('@')[0] || 'Unknown User'}`
+            : `Message from ${msg.users?.email?.split('@')[0] || 'Unknown User'}`,
+          timestamp: msg.timestamp
+        }));
+
+        setNotifications(messageNotifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load notifications. Please try again.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    fetchNotifications();
+
+    // Set up real-time subscription for new messages
+    const subscription = supabase
+      .channel('messages')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `receiver_id=eq.${user?.id}`
+        }, 
+        (payload) => {
+          const newMessage = payload.new;
+          setNotifications(prev => [{
+            id: newMessage.id,
+            type: 'message' as const,
+            title: `New message from ${newMessage.sender_id}`,
+            timestamp: newMessage.timestamp
+          }, ...prev].slice(0, 3));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+  }, [user, toast]);
+
+  // Fetch user's skills
+  useEffect(() => {
+    const fetchUserSkills = async () => {
+      if (!user) return;
+
+      try {
+        // Fetch offered skills
+        const { data: offeredSkillsData, error: offeredError } = await supabase
+          .from('user_skills')
+          .select(`
+            id,
+            skills (
+              id,
+              name,
+              category
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('type', 'offered');
+
+        if (offeredError) throw offeredError;
+
+        if (!offeredSkillsData || !Array.isArray(offeredSkillsData)) {
+          console.error('Invalid offeredSkillsData:', offeredSkillsData);
+          return;
+        }
+
+        const transformedOfferedSkills = offeredSkillsData
+          .filter(skill => skill.skills) // filter out rows where join failed
+          .map(skill => ({
+            id: skill.skills?.id || '',
+            name: skill.skills?.name || 'Unknown Skill',
+            category: skill.skills?.category || 'Unknown Category'
+          }));
+
+        // Fetch wanted skills
+        const { data: wantedSkillsData, error: wantedError } = await supabase
+          .from('user_skills')
+          .select(`
+            id,
+            skill_id,
+            skills:skill_id (
+              id,
+              name,
+              category
+            )
+          `)
+          .eq('user_id', user.id)
+          .eq('type', 'wanted');
+
+        console.log('wantedSkillsData:', wantedSkillsData);
+
+        if (wantedError) throw wantedError;
+
+        if (!wantedSkillsData || !Array.isArray(wantedSkillsData)) {
+          console.error('Invalid wantedSkillsData:', wantedSkillsData);
+          return;
+        }
+
+        // Transform the data to match our Skill interface
+        const transformedWantedSkills = Array.isArray(wantedSkillsData)
+          ? wantedSkillsData
+              .filter(skill => skill.skills) // Ensure `skills` exists
+              .map(skill => ({
+                id: skill.skills?.id || '',
+                name: skill.skills?.name || 'Unknown Skill',
+                category: skill.skills?.category || 'Unknown Category'
+              }))
+          : [];
+
+        setSkillsOffered(transformedOfferedSkills);
+        setSkillsWanted(transformedWantedSkills);
+      } catch (error) {
+        console.error('Error fetching skills:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your skills. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserSkills();
+  }, [user, toast]);
+
+  // Fetch potential matches
+  const fetchMatches = async () => {
+    if (!user || skillsOffered.length === 0 || skillsWanted.length === 0) return;
+
+    try {
+      if (!skillsWanted.length) {
+        console.warn('No wanted skills available for matching.');
+        return;
+      }
+
+      // Get all users who want skills that the current user offers
+      const { data: potentialMatches, error: matchError } = await supabase
+        .from('user_skills')
+        .select(`
+          user_id,
+          type,
+          skills (
+            id,
+            name
+          ),
+          users (
+            id,
+            email
+          )
+        `)
+        .in('skill_id', skillsOffered.map(skill => skill.id))
+        .eq('type', 'wanted')
+        .neq('user_id', user.id);
+
+      if (matchError) throw matchError;
+
+      // Transform the data into our MatchUser format
+      const transformedMatches = potentialMatches.map(match => ({
+        id: match.user_id,
+        name: match.users?.email?.split('@')[0] || 'Unknown User',
+        skillOffered: match.skills?.name || 'Unknown Skill',
+        skillRequested: skillsWanted[0]?.name || 'Unknown Skill',
+        matchPercentage: 80 // This should be calculated based on skill compatibility
+      }));
+
+      setMatches(transformedMatches);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load potential matches. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (skillsOffered.length > 0 && skillsWanted.length > 0) {
+      fetchMatches();
+    }
+  }, [user, skillsOffered, skillsWanted, toast]);
+
+  const handleAddSkill = async () => {
+    if (typeof isAddingOffered !== 'boolean') {
+      toast({
+        title: "Error",
+        description: "Please specify if this is an offered or wanted skill.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!newSkill.name || !user) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -101,45 +314,146 @@ const Dashboard = () => {
       return;
     }
 
-    const skill = {
-      id: isAddingOffered ? skillsOffered.length + 1 : skillsWanted.length + 1,
-      name: newSkill.name,
-      category: newSkill.category
-    };
+    try {
+      // Check if skill exists
+      const { data: existingSkill, error: searchError } = await supabase
+        .from('skills')
+        .select('id')
+        .eq('name', newSkill.name)
+        .single();
 
-    if (isAddingOffered) {
-      setSkillsOffered([...skillsOffered, skill]);
-      toast({
-        title: "Success!",
-        description: `${skill.name} added to your offered skills.`,
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Error searching for skill:', searchError);
+        throw searchError;
+      }
+
+      let skillId;
+      if (existingSkill) {
+        skillId = existingSkill.id;
+      } else {
+        // Insert new skill
+        const { data: newSkillData, error: createError } = await supabase
+          .from('skills')
+          .insert({ name: newSkill.name, category: newSkill.category })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating skill:', createError);
+          throw createError;
+        }
+        skillId = newSkillData.id;
+      }
+
+      // Determine the type value
+      const typeValue = isAddingOffered ? 'offered' : 'wanted';
+      if (!typeValue) {
+        toast({
+          title: "Error",
+          description: "Please specify if this is an offered or wanted skill.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('isAddingOffered:', isAddingOffered, typeof isAddingOffered);
+      console.log('Type value being inserted:', typeValue);
+      console.log('Inserting user_skill:', {
+        user_id: user.id,
+        skill_id: skillId,
+        type: typeValue
       });
-    } else {
-      setSkillsWanted([...skillsWanted, skill]);
+
+      // Insert into user_skills
+      const { error: userSkillError } = await supabase
+        .from('user_skills')
+        .insert({
+          user_id: user.id,
+          skill_id: skillId,
+          type: typeValue
+        });
+
+      if (userSkillError) throw userSkillError;
+
+      // Update local state
+      const skill = {
+        id: skillId,
+        name: newSkill.name,
+        category: newSkill.category
+      };
+
+      if (typeValue === 'offered') {
+        setSkillsOffered([...skillsOffered, skill]);
+        toast({
+          title: "Success!",
+          description: `${skill.name} added to your offered skills.`,
+        });
+      } else {
+        setSkillsWanted([...skillsWanted, skill]);
+        toast({
+          title: "Success!",
+          description: `${skill.name} added to your wanted skills.`,
+        });
+      }
+
+      setNewSkill({ name: '', category: skillCategories[0] });
+    } catch (error: any) {
+      console.error('Error adding skill:', error);
       toast({
-        title: "Success!",
-        description: `${skill.name} added to your wanted skills.`,
+        title: "Error",
+        description: error?.message || error?.details || "Failed to add skill. Please try again.",
+        variant: "destructive"
       });
     }
-
-    // Reset form
-    setNewSkill({ name: '', category: '' });
   };
 
-  const handleRemoveSkill = (id: number, isOffered: boolean) => {
-    if (isOffered) {
-      setSkillsOffered(skillsOffered.filter(skill => skill.id !== id));
+  const handleRemoveSkill = async (id: string, isOffered: boolean) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_skills')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('skill_id', id)
+        .eq('type', isOffered ? 'offered' : 'wanted');
+
+      if (error) {
+        console.error('Error removing skill:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to remove skill. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (isOffered) {
+        setSkillsOffered(skillsOffered.filter(skill => skill.id !== id));
+        toast({
+          title: "Skill removed",
+          description: "Skill has been removed from your offered skills.",
+        });
+      } else {
+        setSkillsWanted(skillsWanted.filter(skill => skill.id !== id));
+        toast({
+          title: "Skill removed",
+          description: "Skill has been removed from your wanted skills.",
+        });
+      }
+    } catch (error) {
+      console.error('Error removing skill:', error);
       toast({
-        title: "Skill removed",
-        description: "Skill has been removed from your offered skills.",
-      });
-    } else {
-      setSkillsWanted(skillsWanted.filter(skill => skill.id !== id));
-      toast({
-        title: "Skill removed",
-        description: "Skill has been removed from your wanted skills.",
+        title: "Error",
+        description: error.message || "Failed to remove skill. Please try again.",
+        variant: "destructive"
       });
     }
   };
+
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
@@ -149,7 +463,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-primary to-primary-light text-white rounded-lg p-6 mb-6 shadow-md">
-            <h1 className="text-2xl font-bold mb-2">Welcome back, User!</h1>
+            <h1 className="text-2xl font-bold mb-2">Welcome back, {user?.email?.split('@')[0]}!</h1>
             <p>You have {matches.length} potential skill matches waiting for you.</p>
           </div>
 
@@ -363,66 +677,27 @@ const Dashboard = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Profile Completion */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Completion</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Progress value={profileCompletion} className="h-2" />
-                    <p className="text-sm text-gray-500">{profileCompletion}% complete</p>
-                    <ul className="text-sm space-y-2">
-                      <li className="flex items-center">
-                        <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                        <span>Basic info added</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                        <span>Skills added</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
-                        <span>Add a profile picture</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="inline-block w-3 h-3 bg-gray-300 rounded-full mr-2"></span>
-                        <span>Set availability times</span>
-                      </li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Notifications */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Notifications</CardTitle>
-                  <Badge>3 New</Badge>
+                  <Badge>{notifications.length} New</Badge>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-start space-x-4 p-3 bg-neutral rounded-lg">
-                      <Bell className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">New skill match found!</p>
-                        <p className="text-xs text-gray-500">2 hours ago</p>
+                    {notifications.map((notification) => (
+                      <div key={notification.id} className="flex items-start space-x-4 p-3 bg-neutral rounded-lg">
+                        {notification.type === 'message' && <MessageSquare className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}
+                        {notification.type === 'match' && <User className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}
+                        {notification.type === 'profile' && <Bell className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}
+                        <div>
+                          <p className="text-sm font-medium">{notification.title}</p>
+                          <p className="text-xs text-gray-500">
+                            {notification.timestamp ? new Date(notification.timestamp).toLocaleDateString() : 'Unknown Date'}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-start space-x-4 p-3 bg-neutral rounded-lg">
-                      <MessageSquare className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Message from Alex Johnson</p>
-                        <p className="text-xs text-gray-500">Yesterday</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start space-x-4 p-3 bg-neutral rounded-lg">
-                      <User className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium">Profile view from Sam Rivera</p>
-                        <p className="text-xs text-gray-500">2 days ago</p>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
