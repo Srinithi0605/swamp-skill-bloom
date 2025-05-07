@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,7 +52,7 @@ const SignUp = () => {
     const success = await signUp(values.email, values.password, values.name);
     setIsSubmitting(false);
     if (success) {
-      navigate('/dashboard');
+      navigate('/profile/setup');
     }
   };
 
@@ -95,10 +94,10 @@ const SignUp = () => {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="yourname@example.com" 
-                            type="email" 
-                            {...field} 
+                          <Input
+                            placeholder="yourname@example.com"
+                            type="email"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -112,10 +111,10 @@ const SignUp = () => {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="••••••••" 
-                            type="password" 
-                            {...field} 
+                          <Input
+                            placeholder="••••••••"
+                            type="password"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
@@ -129,19 +128,19 @@ const SignUp = () => {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="••••••••" 
-                            type="password" 
-                            {...field} 
+                          <Input
+                            placeholder="••••••••"
+                            type="password"
+                            {...field}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Creating Account..." : "Sign Up"}
