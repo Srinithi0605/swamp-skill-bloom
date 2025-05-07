@@ -50,11 +50,10 @@ const WaitingList = () => {
                     )
                 `)
                 .eq('type', 'learn')
-                .neq('user_id', user?.id); // Exclude current user's skills
+                .neq('user_id', user?.id);
 
             if (error) throw error;
 
-            // Cast the data to WaitingSkill[] type
             const typedSkills = (data || []).map(skill => ({
                 ...skill,
                 skill: {
@@ -78,68 +77,36 @@ const WaitingList = () => {
         }
     };
 
-    const handleTeachSkill = async (skillId: string, learnerId: string) => {
+    const handleTeachSkill = async (waitingSkill: WaitingSkill) => {
         if (!user) return;
 
         setIsLoading(true);
         try {
-            // Check if a match already exists
-            const { data: existingMatch, error: matchCheckError } = await supabase
-                .from('matches')
-                .select('id')
-                .eq('teacher_id', user.id)
-                .eq('learner_id', learnerId)
-                .eq('skill_id', skillId)
-                .single();
-
-            if (matchCheckError && matchCheckError.code !== 'PGRST116') {
-                throw matchCheckError;
-            }
-
-            if (existingMatch) {
-                toast({
-                    title: "Match Exists",
-                    description: "You are already matched for this skill",
-                });
-                return;
-            }
-
-            // Add the skill to user's teaching skills
-            const { error: skillError } = await supabase
+            const { error: insertError } = await supabase
                 .from('user_skills')
                 .insert({
                     user_id: user.id,
-                    skill_id: skillId,
-                    type: 'teach'
+                    skill_id: waitingSkill.skill_id,
+                    type: 'offered' // <-- the correct type
                 });
 
-            if (skillError) throw skillError;
+            if (insertError) throw insertError;
 
-            // Create a match between the teacher and learner
-            const { error: matchError } = await supabase
-                .from('matches')
-                .insert({
-                    teacher_id: user.id,
-                    learner_id: learnerId,
-                    skill_id: skillId,
-                    status: 'pending',
-                    created_at: new Date().toISOString()
-                });
-
-            if (matchError) throw matchError;
+            // Remove from UI
+            setWaitingSkills((prev) =>
+                prev.filter((ws) => ws.id !== waitingSkill.id)
+            );
 
             toast({
                 title: "Success",
-                description: "Match created successfully! You can now view it in your dashboard.",
+                description: `You've offered to teach ${waitingSkill.skill.name}`,
+                variant: "default"
             });
-
-            // Refresh the waiting skills list
-            fetchWaitingSkills();
         } catch (error) {
-            console.error('Error creating match:', error);
+            console.error('Error offering skill:', error);
             toast({
                 title: "Error",
-                description: "Failed to create match. Please try again.",
+                description: "Could not offer this skill. Please try again.",
                 variant: "destructive"
             });
         } finally {
@@ -162,7 +129,7 @@ const WaitingList = () => {
                                         <span className="text-xl">{waitingSkill.skill.name}</span>
                                     </div>
                                     <Button
-                                        onClick={() => handleTeachSkill(waitingSkill.skill_id, waitingSkill.user_id)}
+                                        onClick={() => handleTeachSkill(waitingSkill)}
                                         disabled={isLoading}
                                         className="bg-primary hover:bg-primary-dark"
                                     >
@@ -171,11 +138,9 @@ const WaitingList = () => {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-2">
-                                    <p className="text-sm text-gray-500">
-                                        Requested by: {waitingSkill.user.email}
-                                    </p>
-                                </div>
+                                <p className="text-sm text-gray-500">
+                                    Requested by: {waitingSkill.user.email}
+                                </p>
                             </CardContent>
                         </Card>
                     ))}
@@ -195,4 +160,4 @@ const WaitingList = () => {
     );
 };
 
-export default WaitingList; 
+export default WaitingList;

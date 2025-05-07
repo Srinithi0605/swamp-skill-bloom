@@ -48,6 +48,7 @@ const Matches = () => {
   const [viewProfile, setViewProfile] = useState<any | null>(null);
   const [requestingSkillId, setRequestingSkillId] = useState<string>('');
   const [mySkills, setMySkills] = useState<{ teach: Set<string>, learn: Set<string> }>({ teach: new Set(), learn: new Set() });
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -114,58 +115,35 @@ const Matches = () => {
   };
 
   const fetchPotentialMatches = async () => {
+    console.log('Current user:', user);
     setIsLoadingPotential(true);
     try {
-      // Get all users except self and already matched users
       const { data: allUsers, error: userError } = await supabase
         .from('users')
-        .select('id, name, email, bio, location, avatar_url')
+        .select('id, email, avatar_url')
         .neq('id', user.id);
+
+      console.log('Fetched users:', allUsers);
+
       if (userError || !Array.isArray(allUsers)) throw userError;
 
-      // Get all matches involving current user
-      const { data: myMatches, error: matchError } = await supabase
-        .from('matches')
-        .select('teacher_id, learner_id')
-        .or(`teacher_id.eq.${user.id},learner_id.eq.${user.id}`);
-      if (matchError || !Array.isArray(myMatches)) throw matchError;
-      const matchedUserIds = new Set([
-        ...myMatches.map((m: any) => m.teacher_id),
-        ...myMatches.map((m: any) => m.learner_id),
-        user.id
-      ]);
-      // Filter out already matched users
-      const potentials: any[] = allUsers.filter((u: any) => u && typeof u === 'object' && 'id' in u && !matchedUserIds.has(u.id));
-
-      // Fetch skills for each potential user and calculate match percentage
-      for (const u of potentials) {
+      for (const u of allUsers as any[]) {
         const { data: skills, error: skillsError } = await supabase
           .from('user_skills')
           .select('type, skill_id, skill:skills(id, name, category)')
           .eq('user_id', u.id);
-        if (!skillsError && Array.isArray(skills)) {
-          u.skills = skills;
-          u.skillsTeach = skills.filter((s: any) => s.type === 'teach');
-          u.skillsLearn = skills.filter((s: any) => s.type === 'learn');
-          let matchCount = 0;
-          for (const s of u.skillsTeach) {
-            if (mySkills.learn.has(s.skill_id)) matchCount++;
-          }
-          for (const s of u.skillsLearn) {
-            if (mySkills.teach.has(s.skill_id)) matchCount++;
-          }
-          const totalRelevant = u.skillsTeach.length + u.skillsLearn.length + mySkills.teach.size + mySkills.learn.size;
-          u.matchPercentage = totalRelevant > 0 ? Math.round((matchCount / totalRelevant) * 100) : 0;
-        } else {
-          u.skills = [];
-          u.skillsTeach = [];
-          u.skillsLearn = [];
-          u.matchPercentage = 0;
-        }
+        (u as any).skillsTeach = (skills || []).filter((s: any) => s.type === 'offered');
+        (u as any).skillsLearn = (skills || []).filter((s: any) => s.type === 'wanted');
+        (u as any).skills = skills || [];
+        console.log(`User ${u.email} skills:`, skills);
       }
-      setPotentialMatches(potentials);
+
+      setPotentialMatches(allUsers);
+      console.log('Available matches:', allUsers);
+      console.log('Rendering potentialMatches:', potentialMatches);
     } catch (error) {
       setPotentialMatches([]);
+      console.error('Error fetching available matches:', error);
     } finally {
       setIsLoadingPotential(false);
     }
@@ -238,6 +216,11 @@ const Matches = () => {
 
   const handleSendRequest = async (otherUser: any, skillId: string, asTeacher: boolean) => {
     try {
+      // Validate inputs
+      if (!user?.id || !otherUser?.id || !skillId) {
+        throw new Error("Invalid input: Missing user ID, other user ID, or skill ID.");
+      }
+
       // Prevent duplicate requests
       const { data: existing, error: existError } = await supabase
         .from('matches')
@@ -250,23 +233,43 @@ const Matches = () => {
         toast({ title: 'Already requested', description: 'A match already exists or is pending for this skill.' });
         return;
       }
+
       // Insert match request
       const { error } = await supabase
         .from('matches')
         .insert({
-          teacher_id: asTeacher ? user.id : otherUser.id,
-          learner_id: asTeacher ? otherUser.id : user.id,
+          teacher_id: asTeacher ? user.id : otherUser.id, // Current user is teacher or learner
+          learner_id: asTeacher ? otherUser.id : user.id, // Other user is learner or teacher
           skill_id: skillId,
-          status: 'pending'
+          status: 'pending', // Set status to pending
         });
+
       if (error) throw error;
-      toast({ title: 'Request sent', description: 'Your match request has been sent!' });
+
+      // Refresh matches for both users
       fetchPotentialMatches();
       fetchMatches();
+
+      toast({ title: 'Request sent', description: 'Your match request has been sent!' });
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
+      console.error('Error sending match request:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to send request', variant: 'destructive' });
     }
   };
+
+  const handleSkillSelect = (skillId: string) => {
+    setSelectedSkillId(skillId);
+  };
+
+  const handleInviteClick = (otherUser: any) => {
+    if (!selectedSkillId) {
+      toast({ title: 'Error', description: 'Please select a skill before inviting.', variant: 'destructive' });
+      return;
+    }
+    handleSendRequest(otherUser, selectedSkillId, true);
+  };
+
+  console.log('Rendering potentialMatches:', potentialMatches);
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral">
@@ -285,7 +288,7 @@ const Matches = () => {
                 Confirmed Matches <Badge className="ml-2 bg-green-500">{confirmedMatches.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="potential" className="flex-1">
-                Potential Matches <Badge className="ml-2 bg-blue-500">{potentialMatches.length}</Badge>
+                Available Matches <Badge className="ml-2 bg-blue-500">{potentialMatches.length}</Badge>
               </TabsTrigger>
             </TabsList>
 
@@ -450,92 +453,88 @@ const Matches = () => {
             </TabsContent>
 
             <TabsContent value="potential">
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {isLoadingPotential ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">Loading potential matches...</p>
+                    <p className="text-gray-500">Loading available matches...</p>
                   </div>
                 ) : potentialMatches.length > 0 ? (
-                  potentialMatches.map((u) => (
-                    <Card key={u.id} className="overflow-hidden">
-                      <div className="flex flex-col md:flex-row">
-                        <div className="bg-gradient-to-br from-blue-500 to-blue-400 p-6 md:w-1/3 flex flex-col justify-between text-white">
-                          <div>
-                            <div className="flex items-center space-x-3 mb-4">
-                              <Avatar className="h-12 w-12 border-2 border-white">
-                                <AvatarFallback className="bg-blue-700 text-white">
-                                  {u.name ? u.name.split(' ').map((n: string) => n[0]).join('') : u.email.split('@')[0].slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h3 className="font-bold">{u.name || u.email.split('@')[0]}</h3>
-                                <p className="text-xs text-white/80">{u.location}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-auto">
-                            <Badge className="bg-white text-blue-600 mb-2">Match: {u.matchPercentage}%</Badge>
-                            <Button
-                              className="w-full bg-white text-blue-600 hover:bg-neutral"
-                              onClick={() => setViewProfile(u)}
-                            >
-                              View Profile
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="p-6 flex-1">
-                          <div className="mb-2">
-                            <h4 className="text-sm font-medium text-muted-foreground mb-2">Bio:</h4>
-                            <p className="text-gray-800 text-sm">{u.bio || 'No bio provided.'}</p>
-                          </div>
-                          <div className="mb-2">
-                            <h4 className="text-sm font-medium text-muted-foreground mb-2">Skills to Teach:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {u.skillsTeach.length > 0 ? (
-                                u.skillsTeach.map((s: any, idx: number) => (
-                                  <Badge key={idx} className="bg-green-500">
-                                    {s.skill.name}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-xs text-gray-500">None</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="mb-2">
-                            <h4 className="text-sm font-medium text-muted-foreground mb-2">Skills to Learn:</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {u.skillsLearn.length > 0 ? (
-                                u.skillsLearn.map((s: any, idx: number) => (
-                                  <Badge key={idx} className="bg-yellow-500">
-                                    {s.skill.name}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-xs text-gray-500">None</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-2 mt-4">
-                            {u.skills && u.skills.length > 0 && u.skills.map((s: any, idx: number) => (
-                              <Button
-                                key={idx}
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSendRequest(u, s.skill.id, s.type === 'teach')}
-                              >
-                                Request {s.type === 'teach' ? 'to Learn' : 'to Teach'}: {s.skill.name}
-                              </Button>
-                            ))}
-                          </div>
+                  potentialMatches.map((user) => (
+                    <Card key={user.id} className="p-4 shadow-md border border-gray-200">
+                      <div className="flex items-center space-x-4">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-bold text-lg">{user.email}</h3>
                         </div>
                       </div>
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Skills Offered:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {user.skillsTeach.map((skill: any) => (
+                            <Badge
+                              key={skill.skill.id}
+                              className={`cursor-pointer ${selectedSkillId === skill.skill.id ? 'bg-primary-dark' : 'bg-primary'} text-white`}
+                              onClick={() => handleSkillSelect(skill.skill.id)}
+                            >
+                              {skill.skill.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Skills Wanted:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {user.skillsLearn.map((skill: any) => (
+                            <Badge key={skill.skill.id} className="bg-secondary text-white">
+                              {skill.skill.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Select a Skill Combination:</h4>
+                        <select
+                          className="w-full p-2 border rounded"
+                          value={selectedSkillId || ''}
+                          onChange={(e) => handleSkillSelect(e.target.value)}
+                        >
+                          <option value="" disabled>Select a combination</option>
+                          {user.skillsTeach.map((theirSkill: any) => {
+                            const isTeachable = mySkills.teach.has(theirSkill.skill.id);
+                            console.log("Checking skill combination:", {
+                              theirSkill: theirSkill.skill.name,
+                              isTeachable,
+                            });
+                            return (
+                              isTeachable && (
+                                <option key={theirSkill.skill.id} value={theirSkill.skill.id}>
+                                  {`They offer: ${theirSkill.skill.name} | You teach: ${theirSkill.skill.name}`}
+                                </option>
+                              )
+                            );
+                          })}
+                        </select>
+                      </div>
+                      <div className="mt-6">
+                        <Button
+                          className="w-full bg-primary text-white hover:bg-primary-dark"
+                          onClick={() => handleInviteClick(user)}
+                        >
+                          Invite
+                        </Button>
+                      </div>
+                      {user.skillsTeach.map((theirSkill: any) => {
+                        console.log("My teachable skills:", mySkills.teach);
+                        console.log("Their offered skill ID:", theirSkill.skill.id);
+                      })}
                     </Card>
                   ))
                 ) : (
                   <div className="text-center py-12">
-                    <h3 className="text-xl font-medium text-swamp mb-2">No potential matches found</h3>
-                    <p className="text-gray-500">Check back later for more users to connect with.</p>
+                    <h3 className="text-xl font-medium text-swamp mb-2">No available matches</h3>
+                    <p className="text-gray-500">Add more skills to increase your chances of finding matches.</p>
                   </div>
                 )}
               </div>
