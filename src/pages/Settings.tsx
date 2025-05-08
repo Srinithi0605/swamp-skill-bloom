@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -132,6 +131,11 @@ const Settings = () => {
                       />
                     </div>
                   </div>
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={handleSave} className="bg-primary hover:bg-primary-dark text-white">
+                      Save Changes
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -250,16 +254,15 @@ const Settings = () => {
                       <option value="private">Private - Your profile is only visible to you</option>
                     </select>
                   </div>
+                  <div className="pt-4 flex justify-end">
+                    <Button onClick={handleSave} className="bg-primary hover:bg-primary-dark text-white">
+                      Save Changes
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-
-          <div className="mt-6 flex justify-end">
-            <Button onClick={handleSave} className="bg-primary hover:bg-primary-dark dark:bg-blue-600 dark:hover:bg-blue-700">
-              Save Changes
-            </Button>
-          </div>
         </div>
       </main>
       
