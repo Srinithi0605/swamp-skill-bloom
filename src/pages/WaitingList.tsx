@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import NavBar from '@/components/NavBar';
@@ -8,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { WaitingListEntry, getWaitingList, addToWaitingList, removeFromWaitingList } from '@/lib/api/waitingList';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Clock } from 'lucide-react';
 
 interface SkillItem {
@@ -22,6 +23,10 @@ const WaitingList = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [availableSkills, setAvailableSkills] = useState<SkillItem[]>([]);
     const [newSkill, setNewSkill] = useState('');
+    const [skillName, setSkillName] = useState('');
+    const [category, setCategory] = useState('');
+    const [description, setDescription] = useState('');
+    const [notify, setNotify] = useState(true);
 
     useEffect(() => {
         fetchWaitingSkills();
@@ -50,7 +55,7 @@ const WaitingList = () => {
             const { data, error } = await supabase
                 .from('skills')
                 .select('id, name');
-            
+
             if (error) throw error;
             setAvailableSkills(data || []);
         } catch (error) {
@@ -113,7 +118,7 @@ const WaitingList = () => {
             const entry = await addToWaitingList(user.email || '', newSkill.trim());
             setWaitingSkills((prev) => [entry, ...prev]);
             setNewSkill('');
-            
+
             toast({
                 title: "Success",
                 description: "Skill added to waiting list",
@@ -141,75 +146,185 @@ const WaitingList = () => {
         }).format(date);
     };
 
+    // Example categories (replace with your actual categories)
+    const categories = [
+        'Arts & Crafts',
+        'Cooking & Baking',
+        'Design',
+        'Languages',
+        'Music',
+        'Programming & Technology',
+        'Sports & Fitness',
+        'Other',
+    ];
+
+    const handleAddSkill = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!user) {
+            toast({
+                title: "Error",
+                description: "Please sign in to add a skill to the waiting list",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (!skillName.trim() || !category) {
+            toast({
+                title: "Error",
+                description: "Please fill in all required fields",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            // Add to waiting list
+            const entry = await addToWaitingList(user.email || '', skillName.trim());
+
+            // Update UI
+            setWaitingSkills(prev => [entry, ...prev]);
+
+            // Reset form
+            setSkillName('');
+            setCategory('');
+            setDescription('');
+
+            toast({
+                title: "Success",
+                description: "Skill added to waiting list",
+            });
+        } catch (error) {
+            console.error('Error adding to waiting list:', error);
+            toast({
+                title: "Error",
+                description: "Failed to add skill to waiting list",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-neutral dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50">
             <NavBar />
-            <main className="container mx-auto py-8 px-4">
-                <h1 className="text-3xl font-bold text-swamp dark:text-white mb-8">Waiting List</h1>
-
-                <Card className="mb-8 dark:bg-gray-800">
-                    <CardHeader>
-                        <CardTitle className="dark:text-white">Add a Skill to Wait For</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <Input
-                                value={newSkill}
-                                onChange={(e) => setNewSkill(e.target.value)}
-                                placeholder="Enter a skill you want to learn"
-                                className="flex-1 dark:bg-gray-700 dark:text-white dark:border-gray-600"
-                            />
+            <main className="container mx-auto py-10 px-4">
+                <h1 className="text-3xl font-bold text-center mb-8">Skill Waiting List</h1>
+                <p className="text-center text-gray-600 mb-10">
+                    Can't find a skill you want to learn? Add it to our waiting list and get notified when it becomes available.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {/* Left: Request a Skill */}
+                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4">
+                        <h2 className="text-xl font-semibold mb-2">Request a Skill</h2>
+                        <p className="text-gray-500 text-sm mb-4">
+                            Fill out this form to add a skill you're looking for to the waiting list.
+                        </p>
+                        <form onSubmit={handleAddSkill} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Skill Name *</label>
+                                <Input
+                                    value={skillName}
+                                    onChange={e => setSkillName(e.target.value)}
+                                    placeholder="e.g., Japanese Cooking"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Category *</label>
+                                <select
+                                    className="w-full p-2 border rounded"
+                                    value={category}
+                                    onChange={e => setCategory(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map(cat => (
+                                        <option key={cat} value={cat}>{cat}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                                <Textarea
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    placeholder="Briefly describe what you'd like to learn"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    checked={notify}
+                                    onChange={e => setNotify(e.target.checked)}
+                                    id="notify"
+                                    className="accent-primary"
+                                />
+                                <label htmlFor="notify" className="text-sm">Notify me when someone offers this skill</label>
+                            </div>
                             <Button
-                                onClick={handleAddToWaitingList}
-                                disabled={isLoading || !newSkill.trim()}
-                                className="bg-primary hover:bg-primary-dark dark:bg-blue-600 dark:hover:bg-blue-700"
+                                type="submit"
+                                className="w-full"
+                                disabled={isLoading}
                             >
-                                Add to Waiting List
+                                {isLoading ? "Adding..." : "Add to Waiting List"}
                             </Button>
+                        </form>
+                    </div>
+
+                    {/* Right: Current Waiting List */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-xl font-semibold mb-4">Current Waiting List</h2>
+                        <p className="text-gray-500 text-sm mb-4">
+                            Skills people are waiting to learn. If you can teach any of these, add them to your profile!
+                        </p>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-left text-sm">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="py-2 px-2 font-medium">Skill</th>
+                                        <th className="py-2 px-2 font-medium">Category</th>
+                                        <th className="py-2 px-2 font-medium">Requested</th>
+                                        <th className="py-2 px-2 font-medium">People Waiting</th>
+                                        <th className="py-2 px-2 font-medium">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {waitingSkills.length > 0 ? waitingSkills.map((ws, idx) => (
+                                        <tr key={ws.id} className="border-b hover:bg-gray-50">
+                                            <td className="py-2 px-2">{ws.desired_skill}</td>
+                                            <td className="py-2 px-2">
+                                                <Badge>Other</Badge>
+                                            </td>
+                                            <td className="py-2 px-2 text-gray-500">{new Date(ws.created_at).toISOString().split('T')[0]}</td>
+                                            <td className="py-2 px-2">
+                                                <Badge variant="secondary">1</Badge>
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-primary hover:bg-primary-dark"
+                                                    onClick={() => handleTeachSkill(ws)}
+                                                    disabled={isLoading}
+                                                >
+                                                    I Can Teach This
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={5} className="py-8 text-center text-gray-500">
+                                                No skills are currently in the waiting list
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
-                    </CardContent>
-                </Card>
-
-                <div className="grid gap-6">
-                    {waitingSkills.map((waitingSkill) => (
-                        <Card key={waitingSkill.id} className="dark:bg-gray-800">
-                            <CardHeader>
-                                <CardTitle className="flex items-center justify-between">
-                                    <div>
-                                        <span className="text-xl dark:text-white">{waitingSkill.desired_skill}</span>
-                                    </div>
-                                    <Button
-                                        onClick={() => handleTeachSkill(waitingSkill)}
-                                        disabled={isLoading}
-                                        className="bg-primary hover:bg-primary-dark dark:bg-blue-600 dark:hover:bg-blue-700"
-                                    >
-                                        I Can Teach This
-                                    </Button>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        Requested by: {waitingSkill.email}
-                                    </p>
-                                    <div className="flex items-center text-xs text-gray-400">
-                                        <Clock className="h-3 w-3 mr-1" />
-                                        {formatDate(waitingSkill.created_at)}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-
-                    {waitingSkills.length === 0 && (
-                        <Card className="dark:bg-gray-800">
-                            <CardContent className="py-8">
-                                <p className="text-center text-gray-500 dark:text-gray-400">
-                                    No skills are currently in the waiting list
-                                </p>
-                            </CardContent>
-                        </Card>
-                    )}
+                    </div>
                 </div>
             </main>
         </div>
