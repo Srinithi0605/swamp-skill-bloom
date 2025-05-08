@@ -53,6 +53,9 @@ const NavBar = () => {
                 <Link to="/waitlist" className="text-swamp hover:text-primary transition-colors">
                   Waiting List
                 </Link>
+                <Link to="/messages" className="text-swamp hover:text-primary transition-colors">
+                  Messages
+                </Link>
               </>
             )}
 
@@ -119,6 +122,9 @@ const NavBar = () => {
                 </Link>
                 <Link to="/waitlist" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
                   Waiting List
+                </Link>
+                <Link to="/messages" className="block px-3 py-2 rounded-md text-base font-medium text-swamp hover:bg-neutral hover:text-primary">
+                  Messages
                 </Link>
               </>
             )}
