@@ -591,9 +591,4 @@ const Dashboard = () => {
   );
 };
 
-<<<<<<< HEAD
 export default Dashboard;
-
-=======
-export default Dashboard;
->>>>>>> 4249b07 (smtg sri loosu)
