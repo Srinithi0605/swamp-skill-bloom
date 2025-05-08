@@ -14,28 +14,28 @@ import ReviewForm from '@/components/ReviewForm';
 
 interface Match {
   id: string;
-  teacher_id: string;
-  learner_id: string;
-  skill_id: string;
+  user1_id: string;
+  user2_id: string;
+  user1_skill_id: string;
+  user2_skill_id: string;
   status: string;
   created_at: string;
-  skill: {
+  skill1: {
     id: string;
     name: string;
   };
-  teacher: {
+  skill2: {
+    id: string;
+    name: string;
+  };
+  user1: {
     id: string;
     email: string;
     name: string;
   };
-  learner: {
+  user2: {
     id: string;
     email: string;
-    name: string;
-  };
-  offered_skill_id: string;
-  offered_skill: {
-    id: string;
     name: string;
   };
 }
@@ -74,12 +74,10 @@ const Matches = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'matches',
-            filter: `teacher_id=eq.${user.id},learner_id=eq.${user.id}`
+            table: 'matches'
           },
           (payload) => {
-            console.log('Match change received:', payload);
-            fetchMatches(); // Refresh matches when any change occurs
+            fetchMatches();
           }
         )
         .subscribe();
@@ -118,54 +116,82 @@ const Matches = () => {
     }
   };
 
-  const fetchMatches = async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      const { data: matches, error } = await supabase
-        .from('matches')
-        .select(`
-          id,
-          teacher_id,
-          learner_id,
-          skill_id,
-          offered_skill_id,
-          status,
-          created_at,
-          skill:skills (
+  const fetchMatches = async (): Promise<void> => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        const { data: matches, error } = await supabase
+          .from('matches')
+          .select(`
             id,
-            name
-          ),
-          offered_skill:offered_skill_id (
-            id,
-            name
-          ),
-          teacher:users!matches_teacher_id_fkey (
-            id,
-            email,
-            name
-          ),
-          learner:users!matches_learner_id_fkey (
-            id,
-            email,
-            name
-          )
-        `)
-        .or(`teacher_id.eq.${user.id},learner_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
-        .returns<Match[]>();
-      if (error || !Array.isArray(matches)) throw error;
-      const pending = matches.filter((match) => match.status === 'pending');
-      const confirmed = matches.filter((match: any) => match.status === 'confirmed');
-      setPendingMatches(pending);
-      setConfirmedMatches(confirmed);
-    } catch (error) {
-      setPendingMatches([]);
-      setConfirmedMatches([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+            user1_id,
+            user2_id,
+            user1_skill_id,
+            user2_skill_id,
+            status,
+            created_at,
+            user1:users!matches_user1_id_fkey (
+              id,
+              email,
+              name
+            ),
+            user2:users!matches_user2_id_fkey (
+              id,
+              email,
+              name
+            ),
+            skill1:skills!matches_user1_skill_id_fkey (
+              id,
+              name
+            ),
+            skill2:skills!matches_user2_skill_id_fkey (
+              id,
+              name
+            )
+          `)
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .returns<Partial<Match>[]>();
+        if (error || !Array.isArray(matches)) throw error;
+        const pending = matches.filter((match): match is Match => 
+          match.status === 'pending' &&
+          !!match.id &&
+          !!match.user1_id &&
+          !!match.user2_id &&
+          !!match.user1_skill_id &&
+          !!match.user2_skill_id &&
+          !!match.skill1 &&
+          !!match.skill2 &&
+          !!match.user1 &&
+          !!match.user1.id &&
+          !!match.user2 &&
+          !!match.user2.id
+        );
+        const confirmed = matches.filter((match): match is Match => 
+          match.status === 'confirmed' &&
+          !!match.id &&
+          !!match.user1_id &&
+          !!match.user2_id &&
+          !!match.user1_skill_id &&
+          !!match.user2_skill_id &&
+          !!match.skill1 &&
+          !!match.skill2 &&
+          !!match.user1 &&
+          !!match.user1.id &&
+          !!match.user2 &&
+          !!match.user2.id
+        );
+        setPendingMatches(pending);
+        setConfirmedMatches(confirmed);
+        console.log('Fetched matches:', matches);
+        console.log('Current user:', user.id);
+      } catch (error) {
+        setPendingMatches([]);
+        setConfirmedMatches([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   const fetchPotentialMatches = async () => {
     console.log('Current user:', user);
@@ -252,7 +278,7 @@ const Matches = () => {
   };
 
   const getOtherUser = (match: Match) => {
-    return user?.id === match.teacher_id ? match.learner : match.teacher;
+    return user?.id === match.user1_id ? match.user2 : match.user1;
   };
 
   const getInitials = (name: string | undefined, email: string) => {
@@ -262,20 +288,21 @@ const Matches = () => {
     return email.split('@')[0].slice(0, 2).toUpperCase();
   };
 
-  const handleSendRequest = async (otherUser: any, skillId: string, mySkillId: string, asTeacher: boolean) => {
+  const handleSendRequest = async (otherUser, theirSkillId, mySkillId) => {
     try {
-      if (!user?.id || !otherUser?.id || !skillId || !mySkillId) {
-        throw new Error("Invalid input: Missing user ID, other user ID, or skill ID.");
+      if (!user?.id || !otherUser?.id || !theirSkillId || !mySkillId) {
+        throw new Error("Invalid input: Missing user ID or skill ID.");
       }
       // Prevent duplicate requests
+      // @ts-expect-error
       const { data: existing, error: existError } = await supabase
         .from('matches')
         .select('id')
         .or(
-          `and(teacher_id.eq.${user.id},learner_id.eq.${otherUser.id}),and(teacher_id.eq.${otherUser.id},learner_id.eq.${user.id})`
+          `and(user1_id.eq.${user.id},user2_id.eq.${otherUser.id}),and(user1_id.eq.${otherUser.id},user2_id.eq.${user.id})`
         )
-        .eq('skill_id', skillId)
-        .in('status', ['pending', 'confirmed']);
+        .eq('user1_skill_id', theirSkillId)
+        .in('status', ['pending', 'confirmed']) as any;
       if (existError) throw existError;
       if (existing && existing.length > 0) {
         toast({
@@ -285,21 +312,20 @@ const Matches = () => {
         });
         return;
       }
-      // Insert match request with offered_skill_id
+      // Insert match request
       const { data: newMatch, error } = await supabase
         .from('matches')
         .insert({
-          teacher_id: asTeacher ? user.id : otherUser.id,
-          learner_id: asTeacher ? otherUser.id : user.id,
-          skill_id: skillId,
-          offered_skill_id: mySkillId,
+          user1_id: user.id,
+          user2_id: otherUser.id,
+          user1_skill_id: mySkillId,
+          user2_skill_id: theirSkillId,
           status: 'pending',
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
       await fetchMatches();
-      // Clear only the dropdowns for this user
       setSelectedSkillIds(prev => ({ ...prev, [otherUser.id]: '' }));
       setSelectedMySkillIds(prev => ({ ...prev, [otherUser.id]: '' }));
       toast({
@@ -307,13 +333,8 @@ const Matches = () => {
         description: 'Your match request has been sent!',
         variant: 'default'
       });
-    } catch (error: any) {
-      console.error('Error sending match request:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to send request',
-        variant: 'destructive'
-      });
+    } catch (error) {
+      // handle error
     }
   };
 
@@ -324,7 +345,7 @@ const Matches = () => {
       toast({ title: 'Error', description: 'Please select both skills before inviting.', variant: 'destructive' });
       return;
     }
-    handleSendRequest(otherUser, skillId, mySkillId, true);
+    handleSendRequest(otherUser, skillId, mySkillId);
   };
 
   console.log('Rendering potentialMatches:', potentialMatches);
@@ -358,8 +379,14 @@ const Matches = () => {
                   </div>
                 ) : pendingMatches.length > 0 ? (
                   pendingMatches.map((match) => {
-                    const otherUser = getOtherUser(match);
-                    const isInviteSender = match.teacher_id === user.id;
+                    const isUser1 = match.user1_id === user.id;
+                    const yourSkill = isUser1 ? match.skill1.name : match.skill2.name;
+                    const theirSkill = isUser1 ? match.skill2.name : match.skill1.name;
+                    const otherUser = isUser1 ? match.user2 : match.user1;
+
+                    // Show Accept/Decline only if you are the receiver (user2)
+                    const showActions = !isUser1 && match.status === 'pending';
+
                     return (
                       <Card key={match.id} className="overflow-hidden">
                         <div className="flex flex-col md:flex-row">
@@ -377,44 +404,42 @@ const Matches = () => {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              {isInviteSender ? (
-                                <div className="bg-white/20 rounded p-3 text-white text-center">
-                                  Invite sent for <span className="font-bold">{match.skill.name}</span>
-                                  {match.offered_skill?.name && (
-                                    <> trading <span className="font-bold">{match.offered_skill.name}</span></>
-                                  )}
-                                  <br />
-                                  <span className="italic text-sm">(waiting for response)</span>
-                                </div>
-                              ) : (
-                                <>
+                              {showActions && (
+                                <div className="flex gap-3 mt-2">
                                   <Button
-                                    className="w-full bg-white text-primary hover:bg-neutral"
+                                    className="flex-1 bg-green-500 text-white hover:bg-green-600"
                                     onClick={() => handleConfirm(match.id)}
                                   >
-                                    <Check className="mr-2 h-4 w-4" /> Confirm Match
+                                    <Check className="mr-2 h-4 w-4" /> Accept
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    className="w-full border-white text-white hover:bg-white/20"
+                                    className="flex-1 border-red-500 text-red-500 hover:bg-red-50"
                                     onClick={() => handleDecline(match.id)}
                                   >
                                     <X className="mr-2 h-4 w-4" /> Decline
                                   </Button>
-                                </>
+                                </div>
                               )}
                             </div>
                           </div>
                           <div className="p-6 flex-1">
                             <div className="flex flex-col md:flex-row gap-6">
                               <div className="flex-1">
-                                <h4 className="text-sm font-medium text-muted-foreground mb-2">Skill:</h4>
-                                <div className="p-4 rounded-lg border border-primary-light">
-                                  <h3 className="font-semibold text-primary">{match.skill.name}</h3>
+                                <h4 className="text-sm font-medium text-muted-foreground mb-2">Swap Details:</h4>
+                                <div className="space-y-3">
+                                  <div className="p-4 rounded-lg border border-primary-light">
+                                    <h3 className="font-semibold text-primary">You offer:</h3>
+                                    <p className="text-lg">{yourSkill}</p>
+                                  </div>
+                                  <div className="p-4 rounded-lg border border-primary-light">
+                                    <h3 className="font-semibold text-primary">{otherUser.name || otherUser.email} offers:</h3>
+                                    <p className="text-lg">{theirSkill}</p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                            <div className="mt-6">
+                            <div className="mt-4">
                               <h4 className="text-sm font-medium text-muted-foreground mb-2">Send a message:</h4>
                               <div className="flex">
                                 <Button
@@ -422,7 +447,7 @@ const Matches = () => {
                                   className="flex-1 justify-start"
                                   onClick={() => handleOpenMessageDialog(match)}
                                 >
-                                  <MessageSquare className="mr-2 h-4 w-4" /> Hey! I'd love to swap skills...
+                                  <MessageSquare className="mr-2 h-4 w-4" /> Message
                                 </Button>
                               </div>
                             </div>
@@ -493,7 +518,7 @@ const Matches = () => {
                               <div className="flex-1">
                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Skill:</h4>
                                 <div className="p-4 rounded-lg border border-green-200">
-                                  <h3 className="font-semibold text-green-600">{match.skill.name}</h3>
+                                  <h3 className="font-semibold text-green-600">{match.skill1.name}</h3>
                                 </div>
                               </div>
                             </div>
