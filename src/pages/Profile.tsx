@@ -54,6 +54,17 @@ const TIME_SLOTS = Array.from({ length: 24 }, (_, i) => {
   return [`${hour}:00`, `${hour}:30`];
 }).flat();
 
+const skillCategories = [
+  "Arts & Crafts",
+  "Cooking & Baking",
+  "Design",
+  "Languages",
+  "Music",
+  "Programming & Technology",
+  "Sports & Fitness",
+  "Other"
+];
+
 const Profile = () => {
   const { user: authUser } = useAuth();
   const { toast } = useToast();
@@ -79,7 +90,7 @@ const Profile = () => {
   });
   const [newSkill, setNewSkill] = useState({
     name: '',
-    category: '',
+    category: skillCategories[0],
     type: 'offered' as 'offered' | 'wanted'
   });
   const [availableSkills, setAvailableSkills] = useState<{ id: string; name: string; category: string }[]>([]);
@@ -247,7 +258,7 @@ const Profile = () => {
     const success = await handleAddSkill(newSkill);
     if (success) {
       setShowAddSkillDialog(false);
-      setNewSkill({ name: '', category: '', type: 'offered' });
+      setNewSkill({ name: '', category: skillCategories[0], type: 'offered' });
     }
   };
 
@@ -632,11 +643,19 @@ const Profile = () => {
             </div>
             <div className="space-y-2">
               <Label>Category</Label>
-              <Input
+              <Select
                 value={newSkill.category}
-                onChange={(e) => setNewSkill(prev => ({ ...prev, category: e.target.value }))}
-                placeholder="Enter skill category"
-              />
+                onValueChange={(value) => setNewSkill(prev => ({ ...prev, category: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {skillCategories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
