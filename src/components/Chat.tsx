@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,38 +16,37 @@ interface Message {
 }
 
 interface ChatProps {
-  matchId: number | string;
   otherUserId: string;
   otherUserName: string;
   otherUserInitials: string;
   onClose: () => void;
 }
 
-const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose }: ChatProps) => {
+const Chat = ({ otherUserId, otherUserName, otherUserInitials, onClose }: ChatProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
 
-  // Fetch messages for this match on mount
+  // Fetch all messages between the two users on mount or when user changes
   useEffect(() => {
     const fetchMessages = async () => {
-      if (!matchId) return;
+      if (!user?.id || !otherUserId) return;
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('match_id', matchId.toString())
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
         .order('timestamp', { ascending: true });
       if (!error && data) {
         setMessages(data);
       }
     };
     fetchMessages();
-  }, [matchId]);
+  }, [user, otherUserId]);
 
-  // Real-time listener for new messages
+  // Real-time listener for new messages between the two users
   useEffect(() => {
-    if (!matchId) return;
+    if (!user?.id || !otherUserId) return;
     const channel = supabase
       .channel('messages')
       .on(
@@ -57,17 +55,22 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const msg = payload.new;
+          if (
+            (msg.sender_id === user.id && msg.receiver_id === otherUserId) ||
+            (msg.sender_id === otherUserId && msg.receiver_id === user.id)
+          ) {
+            setMessages((prev) => [...prev, msg]);
+          }
         }
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [matchId]);
+  }, [user, otherUserId]);
 
   // Send a message and save to DB
   const handleSendMessage = async () => {
@@ -77,7 +80,6 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
     const { data, error } = await supabase
       .from('messages')
       .insert({
-        match_id: matchId.toString(),
         sender_id: user.id,
         receiver_id: otherUserId,
         message: messageText,
