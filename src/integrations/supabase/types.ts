@@ -14,6 +14,7 @@ export type Database = {
           created_at: string
           id: string
           learner_id: string
+          offered_skill_id: string | null
           skill_id: string
           status: string
           teacher_id: string
@@ -22,6 +23,7 @@ export type Database = {
           created_at?: string
           id?: string
           learner_id: string
+          offered_skill_id?: string | null
           skill_id: string
           status?: string
           teacher_id: string
@@ -30,6 +32,7 @@ export type Database = {
           created_at?: string
           id?: string
           learner_id?: string
+          offered_skill_id?: string | null
           skill_id?: string
           status?: string
           teacher_id?: string
@@ -40,6 +43,13 @@ export type Database = {
             columns: ["learner_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_offered_skill_id_fkey"
+            columns: ["offered_skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
             referencedColumns: ["id"]
           },
           {
@@ -60,6 +70,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          dismissed: boolean | null
           id: string
           match_id: string
           message: string
@@ -68,6 +79,7 @@ export type Database = {
           timestamp: string
         }
         Insert: {
+          dismissed?: boolean | null
           id?: string
           match_id: string
           message: string
@@ -76,6 +88,7 @@ export type Database = {
           timestamp?: string
         }
         Update: {
+          dismissed?: boolean | null
           id?: string
           match_id?: string
           message?: string
@@ -305,6 +318,7 @@ export type Database = {
       }
       waiting_list: {
         Row: {
+          category: string | null
           created_at: string
           desired_skill: string
           email: string
@@ -312,6 +326,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           desired_skill: string
           email: string
@@ -319,6 +334,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           desired_skill?: string
           email?: string

@@ -1,15 +1,24 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
-export const enableRealtimeForMessages = async () => {
-  try {
-    // Enable realtime for the messages table by executing raw SQL
-    await supabase.rpc('exec_sql', {
-      query: 'ALTER PUBLICATION supabase_realtime ADD TABLE messages;'
-    } as any); // Use type assertion to bypass TypeScript checking
-    
-    console.log('Realtime enabled for messages table');
-  } catch (error) {
-    console.error('Error enabling realtime for messages:', error);
-  }
+export const enableRealtimeMessages = (matchId: string, callback: () => void) => {
+  const channel = supabase
+    .channel('realtime-messages')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `match_id=eq.${matchId}`,
+      } as any, // Type assertion to fix TS error
+      () => {
+        callback();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 };

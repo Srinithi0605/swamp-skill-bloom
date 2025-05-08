@@ -1,17 +1,23 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
-export const setupMessagesTable = async () => {
-  // Set REPLICA IDENTITY to FULL for the messages table to enable realtime
+export const setupWaitingList = async (email: string, skillName: string) => {
   try {
-    const { error } = await supabase.rpc('exec_sql', {
-      query: 'ALTER TABLE messages REPLICA IDENTITY FULL;'
-    } as any); // Use type assertion to bypass TypeScript checking
-    
+    // Use type assertion to fix the TypeScript error
+    const { data, error } = await supabase
+      .from('waiting_list' as any)
+      .insert({
+        email,
+        desired_skill: skillName,
+      });
+
     if (error) {
-      console.error('Error setting REPLICA IDENTITY:', error);
+      throw error;
     }
+
+    return { success: true, data };
   } catch (error) {
-    console.error('Error executing SQL:', error);
+    console.error("Error adding to waiting list:", error);
+    return { success: false, error };
   }
 };

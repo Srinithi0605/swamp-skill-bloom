@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserSkills } from '@/contexts/UserSkillsContext';
 import NavBar from '@/components/NavBar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,27 +29,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Skill {
-  id: string;
-  name: string;
-  category: string;
-  type: 'teach' | 'learn';
-}
-
 interface AvailabilitySlot {
   id: string;
   day: string;
   start_time: string;
   end_time: string;
-}
-
-interface Review {
-  id: string;
-  reviewer: string;
-  rating: number;
-  comment: string;
-  date: string;
-  skill: string;
 }
 
 interface UserProfile {
@@ -73,8 +59,7 @@ const Profile = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [skillsOffered, setSkillsOffered] = useState<Skill[]>([]);
-  const [skillsWanted, setSkillsWanted] = useState<Skill[]>([]);
+  const { skillsOffered, skillsWanted, handleDeleteSkill, handleAddSkill } = useUserSkills();
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -123,43 +108,6 @@ const Profile = () => {
         bio: userData.bio || '',
         email: userData.email
       });
-
-      // Fetch user skills
-      const { data: skillsData, error: skillsError } = await supabase
-        .from('user_skills')
-        .select(`
-          id,
-          type,
-          skill:skills (
-            id,
-            name,
-            category
-          )
-        `)
-        .eq('user_id', authUser.id);
-
-      if (skillsError) throw skillsError;
-
-      const teachingSkills = skillsData
-        .filter(s => s.type === 'teach')
-        .map(s => ({
-          id: s.skill.id,
-          name: s.skill.name,
-          category: s.skill.category,
-          type: 'teach' as const
-        }));
-
-      const learningSkills = skillsData
-        .filter(s => s.type === 'learn')
-        .map(s => ({
-          id: s.skill.id,
-          name: s.skill.name,
-          category: s.skill.category,
-          type: 'learn' as const
-        }));
-
-      setSkillsOffered(teachingSkills);
-      setSkillsWanted(learningSkills);
 
       // Fetch availability
       const { data: availabilityData, error: availabilityError } = await supabase
@@ -290,105 +238,7 @@ const Profile = () => {
     }
   };
 
-  const handleAddSkill = async () => {
-    if (!authUser || !newSkill.name || !newSkill.category) {
-      toast({
-        title: "Error",
-        description: "Please fill in all skill fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // First, check if skill exists
-      let { data: existingSkill, error: skillError } = await supabase
-        .from('skills')
-        .select('id')
-        .eq('name', newSkill.name)
-        .single();
-
-      if (skillError && skillError.code !== 'PGRST116') {
-        throw skillError;
-      }
-
-      let skillId;
-      if (!existingSkill) {
-        // Create new skill if it doesn't exist
-        const { data: newSkillData, error: createError } = await supabase
-          .from('skills')
-          .insert({
-            name: newSkill.name,
-            category: newSkill.category
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        skillId = newSkillData.id;
-      } else {
-        skillId = existingSkill.id;
-      }
-
-      // Add skill to user_skills
-      const { error: userSkillError } = await supabase
-        .from('user_skills')
-        .insert({
-          user_id: authUser.id,
-          skill_id: skillId,
-          type: newSkill.type
-        });
-
-      if (userSkillError) throw userSkillError;
-
-      // Refresh skills list
-      await fetchUserProfile();
-      setShowAddSkillDialog(false);
-      setNewSkill({ name: '', category: '', type: 'teach' });
-      toast({
-        title: "Success",
-        description: "Skill added successfully"
-      });
-    } catch (error) {
-      console.error('Error adding skill:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add skill",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleDeleteSkill = async (skillId: string, type: 'teach' | 'learn') => {
-    try {
-      const { error } = await supabase
-        .from('user_skills')
-        .delete()
-        .eq('user_id', authUser?.id)
-        .eq('skill_id', skillId)
-        .eq('type', type);
-
-      if (error) throw error;
-
-      if (type === 'teach') {
-        setSkillsOffered(prev => prev.filter(skill => skill.id !== skillId));
-      } else {
-        setSkillsWanted(prev => prev.filter(skill => skill.id !== skillId));
-      }
-
-      toast({
-        title: "Success",
-        description: "Skill removed successfully"
-      });
-    } catch (error) {
-      console.error('Error deleting skill:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove skill",
-        variant: "destructive"
-      });
-    }
-  };
+  // The handleAddSkill and handleDeleteSkill functions are now coming from the UserSkillsContext
 
   if (isLoading) {
     return (
@@ -781,7 +631,14 @@ const Profile = () => {
             <Button variant="outline" onClick={() => setShowAddSkillDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddSkill}>Add Skill</Button>
+            <Button onClick={() => {
+              handleAddSkill(newSkill).then(success => {
+                if (success) {
+                  setShowAddSkillDialog(false);
+                  setNewSkill({ name: '', category: '', type: 'teach' });
+                }
+              });
+            }}>Add Skill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
