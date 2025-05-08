@@ -64,7 +64,7 @@ const skillCategories = [
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user: authUser, isLoading: isAuthLoading } = useAuth();
   const { skillsOffered, skillsWanted, handleAddSkill, handleDeleteSkill } = useUserSkills();
   const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
@@ -73,11 +73,35 @@ const Dashboard = () => {
   const [matches, setMatches] = useState<MatchUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [userName, setUserName] = useState<string>('');
+
+  // Fetch user data including name
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!authUser) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', authUser.id)
+          .single();
+
+        if (error) throw error;
+        setUserName(data?.name || authUser.email?.split('@')[0] || 'User');
+      } catch (error) {
+        console.error('Error fetching user name:', error);
+        setUserName(authUser.email?.split('@')[0] || 'User');
+      }
+    };
+
+    fetchUserName();
+  }, [authUser]);
 
   // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
-      if (!user) {
+      if (!authUser) {
         setIsLoading(false);
         return;
       }
@@ -96,7 +120,7 @@ const Dashboard = () => {
               email
             )
           `)
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .or(`sender_id.eq.${authUser.id},receiver_id.eq.${authUser.id}`)
           .order('timestamp', { ascending: false })
           .limit(3);
 
@@ -106,7 +130,7 @@ const Dashboard = () => {
         const messageNotifications = (messages || []).map((msg: any) => ({
           id: msg.id,
           type: 'message' as const,
-          title: msg.sender_id === user.id 
+          title: msg.sender_id === authUser.id 
             ? `Message sent to ${msg.users?.email?.split('@')[0] || 'Unknown User'}`
             : `Message from ${msg.users?.email?.split('@')[0] || 'Unknown User'}`,
           timestamp: msg.timestamp
@@ -136,7 +160,7 @@ const Dashboard = () => {
           event: 'INSERT', 
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${user?.id}`
+          filter: `receiver_id=eq.${authUser?.id}`
         },
         (payload) => {
           const newMessage = payload.new;
@@ -153,11 +177,11 @@ const Dashboard = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [user, toast]);
+  }, [authUser, toast]);
 
   // Fetch potential matches
   const fetchMatches = async () => {
-    if (!user || skillsOffered.length === 0 || skillsWanted.length === 0) return;
+    if (!authUser || skillsOffered.length === 0 || skillsWanted.length === 0) return;
 
     try {
       // Fetch users who want skills that the current user offers
@@ -177,7 +201,7 @@ const Dashboard = () => {
         `)
         .in('skill_id', skillsOffered.map(skill => skill.id))
         .eq('type', 'wanted')
-        .neq('user_id', user.id);
+        .neq('user_id', authUser.id);
 
       if (matchError) throw matchError;
 
@@ -198,7 +222,7 @@ const Dashboard = () => {
         `)
         .in('skill_id', skillsWanted.map(skill => skill.id))
         .eq('type', 'offered')
-        .neq('user_id', user.id);
+        .neq('user_id', authUser.id);
 
       if (offeredError) throw offeredError;
 
@@ -234,10 +258,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (skillsOffered.length > 0 && skillsWanted.length > 0 && user) {
+    if (skillsOffered.length > 0 && skillsWanted.length > 0 && authUser) {
       fetchMatches();
     }
-  }, [user, skillsOffered, skillsWanted, toast]);
+  }, [authUser, skillsOffered, skillsWanted, toast]);
 
   const handleAddNewSkill = async () => {
     const success = await handleAddSkill({
@@ -259,7 +283,7 @@ const Dashboard = () => {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
-  if (!user) {
+  if (!authUser) {
     return <div className="flex justify-center items-center h-screen">Please sign in to view the dashboard</div>;
   }
 
@@ -271,7 +295,7 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto">
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-primary to-primary-light text-white rounded-lg p-6 mb-6 shadow-md">
-            <h1 className="text-2xl font-bold mb-2">Welcome back, {user?.email?.split('@')[0]}!</h1>
+            <h1 className="text-2xl font-bold mb-2">Welcome back, {userName}!</h1>
             <p>You have {matches.length} potential skill matches waiting for you.</p>
           </div>
 
