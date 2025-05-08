@@ -158,10 +158,54 @@ const WaitingList = () => {
         'Other',
     ];
 
-    // Handler for adding a skill to the waiting list (replace with your logic)
     const handleAddSkill = async (e: React.FormEvent) => {
         e.preventDefault();
-        // ...your logic to add to waiting list...
+
+        if (!user) {
+            toast({
+                title: "Error",
+                description: "Please sign in to add a skill to the waiting list",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (!skillName.trim() || !category) {
+            toast({
+                title: "Error",
+                description: "Please fill in all required fields",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            // Add to waiting list
+            const entry = await addToWaitingList(user.email || '', skillName.trim());
+
+            // Update UI
+            setWaitingSkills(prev => [entry, ...prev]);
+
+            // Reset form
+            setSkillName('');
+            setCategory('');
+            setDescription('');
+
+            toast({
+                title: "Success",
+                description: "Skill added to waiting list",
+            });
+        } catch (error) {
+            console.error('Error adding to waiting list:', error);
+            toast({
+                title: "Error",
+                description: "Failed to add skill to waiting list",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -179,7 +223,7 @@ const WaitingList = () => {
                         <p className="text-gray-500 text-sm mb-4">
                             Fill out this form to add a skill you're looking for to the waiting list.
                         </p>
-                        <form onSubmit={handleAddSkill} className="flex flex-col gap-4">
+                        <form onSubmit={handleAddSkill} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Skill Name *</label>
                                 <Input
@@ -221,7 +265,13 @@ const WaitingList = () => {
                                 />
                                 <label htmlFor="notify" className="text-sm">Notify me when someone offers this skill</label>
                             </div>
-                            <Button type="submit" className="w-full">Add to Waiting List</Button>
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? "Adding..." : "Add to Waiting List"}
+                            </Button>
                         </form>
                     </div>
 

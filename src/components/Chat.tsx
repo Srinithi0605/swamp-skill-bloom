@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -28,19 +29,43 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      sender_id: user?.id || '',
-      receiver_id: otherUserId,
-      message: newMessage.trim(),
-      timestamp: new Date().toISOString()
+  // Fetch messages for this match on mount
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!matchId) return;
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('match_id', matchId)
+        .order('timestamp', { ascending: true });
+      if (!error && data) {
+        setMessages(data);
+      }
     };
+    fetchMessages();
+  }, [matchId]);
 
-    setMessages([...messages, message]);
+  // Send a message and save to DB
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user?.id) return;
+    const messageText = newMessage.trim();
     setNewMessage('');
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        match_id: matchId,
+        sender_id: user.id,
+        receiver_id: otherUserId,
+        message: messageText,
+        timestamp: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    if (!error && data) {
+      setMessages((prev) => [...prev, data]);
+    } else {
+      toast({ title: 'Error', description: 'Failed to send message', variant: 'destructive' });
+    }
   };
 
   return (
