@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,7 +37,7 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('match_id', matchId)
+        .eq('match_id', matchId.toString())
         .order('timestamp', { ascending: true });
       if (!error && data) {
         setMessages(data);
@@ -59,7 +60,7 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
           filter: `match_id=eq.${matchId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => [...prev, payload.new as Message]);
         }
       )
       .subscribe();
@@ -76,7 +77,7 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
     const { data, error } = await supabase
       .from('messages')
       .insert({
-        match_id: matchId,
+        match_id: matchId.toString(),
         sender_id: user.id,
         receiver_id: otherUserId,
         message: messageText,

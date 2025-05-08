@@ -17,7 +17,7 @@ interface UserSkillsContextType {
   isLoading: boolean;
   fetchUserSkills: () => Promise<void>;
   handleDeleteSkill: (skillId: string, type: 'teach' | 'learn') => Promise<void>;
-  handleAddSkill: (newSkill: { name: string; category: string; type: 'teach' | 'learn' }) => Promise<void>;
+  handleAddSkill: (newSkill: { name: string; category: string; type: 'teach' | 'learn' }) => Promise<boolean>;
 }
 
 const UserSkillsContext = createContext<UserSkillsContextType | undefined>(undefined);
@@ -90,7 +90,7 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const handleDeleteSkill = async (skillId: string, type: 'teach' | 'learn') => {
+  const handleDeleteSkill = async (skillId: string, type: 'teach' | 'learn'): Promise<void> => {
     try {
       const { error } = await supabase
         .from('user_skills')
@@ -121,14 +121,14 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const handleAddSkill = async (newSkill: { name: string; category: string; type: 'teach' | 'learn' }) => {
+  const handleAddSkill = async (newSkill: { name: string; category: string; type: 'teach' | 'learn' }): Promise<boolean> => {
     if (!authUser || !newSkill.name || !newSkill.category) {
       toast({
         title: "Error",
         description: "Please fill in all skill fields",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     try {

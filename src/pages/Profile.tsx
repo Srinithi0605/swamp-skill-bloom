@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserSkills } from '@/contexts/UserSkillsContext';
@@ -238,7 +237,14 @@ const Profile = () => {
     }
   };
 
-  // The handleAddSkill and handleDeleteSkill functions are now coming from the UserSkillsContext
+  // Fixed handleAddSkill usage
+  const handleAddNewSkill = async () => {
+    const success = await handleAddSkill(newSkill);
+    if (success) {
+      setShowAddSkillDialog(false);
+      setNewSkill({ name: '', category: '', type: 'teach' });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -631,14 +637,7 @@ const Profile = () => {
             <Button variant="outline" onClick={() => setShowAddSkillDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              handleAddSkill(newSkill).then(success => {
-                if (success) {
-                  setShowAddSkillDialog(false);
-                  setNewSkill({ name: '', category: '', type: 'teach' });
-                }
-              });
-            }}>Add Skill</Button>
+            <Button onClick={handleAddNewSkill}>Add Skill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -46,6 +46,9 @@ export const fetchWaitingListEntries = async (): Promise<WaitingListEntry[]> => 
   }
 };
 
+// Adding this function to fix the missing export error
+export const getWaitingList = fetchWaitingListEntries;
+
 export const removeFromWaitingList = async (
   id: string
 ): Promise<{ success: boolean; error?: any }> => {
