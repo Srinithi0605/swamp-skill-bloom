@@ -115,12 +115,12 @@ const WaitingList = () => {
 
         setIsLoading(true);
         try {
-            const result = await addToWaitingList(user.email || '', newSkill.trim());
+            const result = await addToWaitingList(user.email || '', newSkill.trim(), undefined, user.id);
             if (result.success) {
                 // Refresh the list after adding
                 await fetchWaitingSkills();
                 setNewSkill('');
-                
+
                 toast({
                     title: "Success",
                     description: "Skill added to waiting list",
@@ -185,17 +185,17 @@ const WaitingList = () => {
         setIsLoading(true);
         try {
             // Add to waiting list
-            const result = await addToWaitingList(user.email || '', skillName.trim(), category);
-            
+            const result = await addToWaitingList(user.email || '', skillName.trim(), category, user.id);
+
             if (result.success) {
                 // Refresh the list after adding
                 await fetchWaitingSkills();
-                
+
                 // Reset form
                 setSkillName('');
                 setCategory('');
                 setDescription('');
-                
+
                 toast({
                     title: "Success",
                     description: "Skill added to waiting list",
