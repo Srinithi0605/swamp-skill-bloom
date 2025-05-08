@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import MessageSystem from '@/components/MessageSystem';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserSkills } from '@/contexts/UserSkillsContext';
 
 interface Skill {
   id: string;
@@ -63,11 +64,10 @@ const skillCategories = [
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { skillsOffered, skillsWanted, handleAddSkill, handleDeleteSkill } = useUserSkills();
   const [selectedMatch, setSelectedMatch] = useState<MatchUser | null>(null);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
-  const [skillsOffered, setSkillsOffered] = useState<Skill[]>([]);
-  const [skillsWanted, setSkillsWanted] = useState<Skill[]>([]);
   const [newSkill, setNewSkill] = useState({ name: '', category: skillCategories[0] });
   const [isAddingOffered, setIsAddingOffered] = useState(false);
   const [matches, setMatches] = useState<MatchUser[]>([]);
@@ -77,7 +77,10 @@ const Dashboard = () => {
   // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         // Fetch recent messages
@@ -117,6 +120,8 @@ const Dashboard = () => {
           description: "Failed to load notifications. Please try again.",
           variant: "destructive"
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -149,93 +154,6 @@ const Dashboard = () => {
         subscription.unsubscribe();
       }
     };
-  }, [user, toast]);
-
-  // Fetch user's skills
-  useEffect(() => {
-    const fetchUserSkills = async () => {
-      if (!user) return;
-
-      try {
-        // Fetch offered skills
-        const { data: offeredSkillsData, error: offeredError } = await supabase
-          .from('user_skills')
-          .select(`
-            id,
-            skills (
-              id,
-              name,
-              category
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('type', 'offered');
-
-        if (offeredError) throw offeredError;
-
-        if (!offeredSkillsData || !Array.isArray(offeredSkillsData)) {
-          console.error('Invalid offeredSkillsData:', offeredSkillsData);
-          return;
-        }
-
-        const transformedOfferedSkills = offeredSkillsData
-          .filter(skill => skill.skills) // filter out rows where join failed
-          .map(skill => ({
-            id: skill.skills?.id || '',
-            name: skill.skills?.name || 'Unknown Skill',
-            category: skill.skills?.category || 'Unknown Category'
-          }));
-
-        // Fetch wanted skills
-        const { data: wantedSkillsData, error: wantedError } = await supabase
-          .from('user_skills')
-          .select(`
-            id,
-            skill_id,
-            skills:skill_id (
-              id,
-              name,
-              category
-            )
-          `)
-          .eq('user_id', user.id)
-          .eq('type', 'wanted');
-
-        console.log('wantedSkillsData:', wantedSkillsData);
-
-        if (wantedError) throw wantedError;
-
-        if (!wantedSkillsData || !Array.isArray(wantedSkillsData)) {
-          console.error('Invalid wantedSkillsData:', wantedSkillsData);
-          return;
-        }
-
-        // Transform the data to match our Skill interface
-        const transformedWantedSkills = Array.isArray(wantedSkillsData)
-          ? wantedSkillsData
-              .filter(skill => skill.skills) // Ensure `skills` exists
-              .map(skill => ({
-                id: skill.skills?.id || '',
-                name: skill.skills?.name || 'Unknown Skill',
-                category: skill.skills?.category || 'Unknown Category'
-              }))
-          : [];
-
-        setSkillsOffered(transformedOfferedSkills);
-        setSkillsWanted(transformedWantedSkills);
-      } catch (error) {
-        console.error('Error fetching skills:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load your skills. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserSkills();
   }, [user, toast]);
 
   // Fetch potential matches
@@ -317,164 +235,28 @@ const Dashboard = () => {
     }
   }, [user, skillsOffered, skillsWanted, toast]);
 
-  const handleAddSkill = async () => {
-    if (typeof isAddingOffered !== 'boolean') {
-      toast({
-        title: "Error",
-        description: "Please specify if this is an offered or wanted skill.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleAddNewSkill = async () => {
+    const success = await handleAddSkill({
+      name: newSkill.name,
+      category: newSkill.category,
+      type: isAddingOffered ? 'offered' : 'wanted'
+    });
 
-    if (!newSkill.name || !user) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Check if skill exists
-      const { data: existingSkill, error: searchError } = await supabase
-        .from('skills')
-        .select('id')
-        .eq('name', newSkill.name)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error searching for skill:', searchError);
-        throw searchError;
-      }
-
-      let skillId;
-      if (existingSkill) {
-        skillId = existingSkill.id;
-      } else {
-        // Insert new skill
-        const { data: newSkillData, error: createError } = await supabase
-          .from('skills')
-          .insert({ name: newSkill.name, category: newSkill.category })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating skill:', createError);
-          throw createError;
-        }
-        skillId = newSkillData.id;
-      }
-
-      // Determine the type value
-      const typeValue = isAddingOffered ? 'offered' : 'wanted';
-      if (!typeValue) {
-        toast({
-          title: "Error",
-          description: "Please specify if this is an offered or wanted skill.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('isAddingOffered:', isAddingOffered, typeof isAddingOffered);
-      console.log('Type value being inserted:', typeValue);
-      console.log('Inserting user_skill:', {
-        user_id: user.id,
-        skill_id: skillId,
-        type: typeValue
-      });
-
-      // Insert into user_skills
-      const { error: userSkillError } = await supabase
-        .from('user_skills')
-        .insert({
-          user_id: user.id,
-          skill_id: skillId,
-          type: typeValue
-        });
-
-      if (userSkillError) throw userSkillError;
-
-      // Update local state
-      const skill = {
-        id: skillId,
-        name: newSkill.name,
-        category: newSkill.category
-      };
-
-      if (typeValue === 'offered') {
-        setSkillsOffered([...skillsOffered, skill]);
-        toast({
-          title: "Success!",
-          description: `${skill.name} added to your offered skills.`,
-        });
-      } else {
-        setSkillsWanted([...skillsWanted, skill]);
-        toast({
-          title: "Success!",
-          description: `${skill.name} added to your wanted skills.`,
-        });
-      }
-
+    if (success) {
       setNewSkill({ name: '', category: skillCategories[0] });
-    } catch (error: any) {
-      console.error('Error adding skill:', error);
-      toast({
-        title: "Error",
-        description: error?.message || error?.details || "Failed to add skill. Please try again.",
-        variant: "destructive"
-      });
     }
   };
 
   const handleRemoveSkill = async (id: string, isOffered: boolean) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_skills')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('skill_id', id)
-        .eq('type', isOffered ? 'offered' : 'wanted');
-
-      if (error) {
-        console.error('Error removing skill:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to remove skill. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (isOffered) {
-        setSkillsOffered(skillsOffered.filter(skill => skill.id !== id));
-        toast({
-          title: "Skill removed",
-          description: "Skill has been removed from your offered skills.",
-        });
-      } else {
-        setSkillsWanted(skillsWanted.filter(skill => skill.id !== id));
-        toast({
-          title: "Skill removed",
-          description: "Skill has been removed from your wanted skills.",
-        });
-      }
-    } catch (error) {
-      console.error('Error removing skill:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to remove skill. Please try again.",
-        variant: "destructive"
-      });
-    }
+    await handleDeleteSkill(id, isOffered ? 'offered' : 'wanted');
   };
 
-  if (isLoading) {
+  if (isAuthLoading || isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="flex justify-center items-center h-screen">Please sign in to view the dashboard</div>;
   }
 
   return (
@@ -513,7 +295,7 @@ const Dashboard = () => {
                           Let others know what skills you can share with the community.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="grid gap-4 py-4">
+                      <div className="space-y-4">
                         <div className="grid gap-2">
                           <Label htmlFor="skill-name">Skill name</Label>
                           <Input
@@ -541,7 +323,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                        <Button onClick={handleAddNewSkill}>Add Skill</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -595,7 +377,7 @@ const Dashboard = () => {
                           Let others know what skills you're interested in learning.
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="grid gap-4 py-4">
+                      <div className="space-y-4">
                         <div className="grid gap-2">
                           <Label htmlFor="skill-name">Skill name</Label>
                           <Input
@@ -623,7 +405,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                        <Button onClick={handleAddNewSkill}>Add Skill</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -767,7 +549,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button onClick={handleAddSkill}>Add Skill</Button>
+                        <Button onClick={handleAddNewSkill}>Add Skill</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>

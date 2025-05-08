@@ -78,7 +78,7 @@ const Profile = () => {
   const [newSkill, setNewSkill] = useState({
     name: '',
     category: '',
-    type: 'teach' as 'teach' | 'learn'
+    type: 'offered' as 'offered' | 'wanted'
   });
   const [availableSkills, setAvailableSkills] = useState<{ id: string; name: string; category: string }[]>([]);
 
@@ -242,7 +242,7 @@ const Profile = () => {
     const success = await handleAddSkill(newSkill);
     if (success) {
       setShowAddSkillDialog(false);
-      setNewSkill({ name: '', category: '', type: 'teach' });
+      setNewSkill({ name: '', category: '', type: 'offered' });
     }
   };
 
@@ -469,7 +469,7 @@ const Profile = () => {
                                   variant="ghost"
                                   size="sm"
                                   className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                                  onClick={() => handleDeleteSkill(skill.id, 'teach')}
+                                  onClick={() => handleDeleteSkill(skill.id, 'offered')}
                                 >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -503,7 +503,7 @@ const Profile = () => {
                                   variant="ghost"
                                   size="sm"
                                   className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                                  onClick={() => handleDeleteSkill(skill.id, 'learn')}
+                                  onClick={() => handleDeleteSkill(skill.id, 'wanted')}
                                 >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -621,14 +621,14 @@ const Profile = () => {
               <Label>Type</Label>
               <Select
                 value={newSkill.type}
-                onValueChange={(value: 'teach' | 'learn') => setNewSkill(prev => ({ ...prev, type: value }))}
+                onValueChange={(value: 'offered' | 'wanted') => setNewSkill(prev => ({ ...prev, type: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="teach">I Can Teach This</SelectItem>
-                  <SelectItem value="learn">I Want to Learn This</SelectItem>
+                  <SelectItem value="offered">I Can Teach This</SelectItem>
+                  <SelectItem value="wanted">I Want to Learn This</SelectItem>
                 </SelectContent>
               </Select>
             </div>
