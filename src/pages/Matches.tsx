@@ -102,7 +102,9 @@ const Matches = () => {
           (m) => m.status === 'pending' && m.user2_id === user.id
         ) ?? []
       );
-      setConfirmedMatches(typedMatches?.filter((m) => m.status === 'confirmed') ?? []);
+      setConfirmedMatches(
+        typedMatches?.filter((m) => m.status === 'confirmed' && (m.user1_id === user.id || m.user2_id === user.id)) ?? []
+      );
     } catch {
       setPendingMatches([]);
       setConfirmedMatches([]);
@@ -154,7 +156,7 @@ const Matches = () => {
     try {
       const { error } = await supabase
         .from('matches')
-        .delete()
+        .update({ status: 'declined' })
         .eq('id', matchId);
       if (error) throw error;
       await fetchMatches();
@@ -183,20 +185,23 @@ const Matches = () => {
       if (!user?.id || !otherUser?.id || !theirSkillId || !mySkillId) {
         throw new Error("Invalid input: Missing user ID or skill ID.");
       }
-      // Prevent duplicate requests
-      const { data: existing, error: existError } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('user1_id', user.id)
-        .eq('user2_id', otherUser.id)
-        .eq('user1_skill_id', mySkillId)
-        .eq('user2_skill_id', theirSkillId)
-        .in('status', ['pending', 'confirmed']);
+      // Only block if there is a pending or confirmed match; allow new requests if previous was declined
+      const { data: existing, error: existError } = await (
+        supabase
+          .from('matches')
+          .select('id')
+          .or(
+            `and(user1_id.eq.${user.id},user2_id.eq.${otherUser.id},user1_skill_id.eq.${mySkillId},user2_skill_id.eq.${theirSkillId}),` +
+            `and(user1_id.eq.${otherUser.id},user2_id.eq.${user.id},user1_skill_id.eq.${theirSkillId},user2_skill_id.eq.${mySkillId})`
+          )
+          .in('status', ['pending', 'confirmed', 'declined'])
+      ) as any;
+
       if (existError) throw existError;
       if (existing && existing.length > 0) {
         toast({
           title: 'Already requested',
-          description: 'A match already exists or is pending for this skill.',
+          description: 'A match for this skill pair between you two already exists or is pending (in either direction).',
           variant: 'destructive'
         });
         return;
@@ -250,10 +255,10 @@ const Matches = () => {
           <Tabs defaultValue="pending" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="pending" className="flex-1">
-                Pending Matches <Badge className="ml-2 bg-primary">{pendingMatches.length}</Badge>
+                Match Requests <Badge className="ml-2 bg-primary">{pendingMatches.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="confirmed" className="flex-1">
-                Confirmed Matches <Badge className="ml-2 bg-green-500">{confirmedMatches.length}</Badge>
+                All Matches <Badge className="ml-2 bg-green-500">{confirmedMatches.length}</Badge>
               </TabsTrigger>
               <TabsTrigger value="potential" className="flex-1">
                 Available Matches <Badge className="ml-2 bg-blue-500">{potentialMatches.length}</Badge>
