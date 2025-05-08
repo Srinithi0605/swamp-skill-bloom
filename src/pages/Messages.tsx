@@ -18,7 +18,6 @@ const Messages = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [search, setSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [matchId, setMatchId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -31,37 +30,9 @@ const Messages = () => {
         if (user?.id) fetchUsers();
     }, [user]);
 
-    // Find or create a match between the current user and selected user
-    const handleSelectUser = async (otherUser: User) => {
+    // Simplified user selection handler
+    const handleSelectUser = (otherUser: User) => {
         setSelectedUser(otherUser);
-
-        // Try to find an existing match between the two users (in either direction)
-        const { data, error } = await supabase
-            .from('matches')
-            .select('id, teacher_id, learner_id')
-            .or(
-                `and(teacher_id.eq.${user?.id},learner_id.eq.${otherUser.id}),and(teacher_id.eq.${otherUser.id},learner_id.eq.${user?.id})`
-            )
-            .limit(1)
-            .single();
-
-        let foundMatch = data;
-
-        if (!foundMatch) {
-            // Create a new match for messaging if none exists
-            const { data: newMatch, error: insertError } = await supabase
-                .from('matches')
-                .insert({
-                    teacher_id: user?.id,
-                    learner_id: otherUser.id,
-                    skill_id: null,
-                    status: 'message',
-                })
-                .select('id')
-                .single();
-            foundMatch = newMatch;
-        }
-        setMatchId(foundMatch?.id);
     };
 
     return (
@@ -97,9 +68,8 @@ const Messages = () => {
                     </div>
                     {/* Chat Area */}
                     <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 md:col-span-2 min-h-[60vh]">
-                        {selectedUser && matchId ? (
+                        {selectedUser ? (
                             <Chat
-                                matchId={matchId}
                                 otherUserId={selectedUser.id}
                                 otherUserName={selectedUser.name || selectedUser.email}
                                 otherUserInitials={selectedUser.name?.split(' ').map(n => n[0]).join('') || selectedUser.email[0]}
