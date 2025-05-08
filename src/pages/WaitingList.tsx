@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { WaitingListEntry, getWaitingList, addToWaitingList, removeFromWaitingList } from '@/lib/api/waitingList';
+import { WaitingListEntry, fetchWaitingListEntries, addToWaitingList, removeFromWaitingList } from '@/lib/api/waitingList';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,7 @@ const WaitingList = () => {
     const fetchWaitingSkills = async () => {
         try {
             setIsLoading(true);
-            const data = await getWaitingList();
+            const data = await fetchWaitingListEntries();
             setWaitingSkills(data);
         } catch (error) {
             console.error('Error fetching waiting skills:', error);
@@ -79,7 +79,7 @@ const WaitingList = () => {
                     .insert({
                         user_id: user.id,
                         skill_id: skillItem.id,
-                        type: 'offered'
+                        type: 'teach'
                     });
 
                 if (insertError) throw insertError;
@@ -115,15 +115,17 @@ const WaitingList = () => {
 
         setIsLoading(true);
         try {
-            const entry = await addToWaitingList(user.email || '', newSkill.trim());
-            if ('error' in entry) throw entry.error;
-            setWaitingSkills((prev) => [...prev, entry as unknown as WaitingListEntry]);
-            setNewSkill('');
+            const result = await addToWaitingList(user.email || '', newSkill.trim(), undefined, user.id);
+            if (result.success) {
+                // Refresh the list after adding
+                await fetchWaitingSkills();
+                setNewSkill('');
 
-            toast({
-                title: "Success",
-                description: "Skill added to waiting list",
-            });
+                toast({
+                    title: "Success",
+                    description: "Skill added to waiting list",
+                });
+            }
         } catch (error) {
             console.error('Error adding to waiting list:', error);
             toast({
@@ -183,24 +185,22 @@ const WaitingList = () => {
         setIsLoading(true);
         try {
             // Add to waiting list
-            const entry = await addToWaitingList(user.email || '', skillName.trim());
-            // Update UI
-            setWaitingSkills(prev => {
-                if ('success' in entry) {
-                    return prev;
-                }
-                return [entry, ...prev];
-            });
+            const result = await addToWaitingList(user.email || '', skillName.trim(), category, user.id);
 
-            // Reset form
-            setSkillName('');
-            setCategory('');
-            setDescription('');
+            if (result.success) {
+                // Refresh the list after adding
+                await fetchWaitingSkills();
 
-            toast({
-                title: "Success",
-                description: "Skill added to waiting list",
-            });
+                // Reset form
+                setSkillName('');
+                setCategory('');
+                setDescription('');
+
+                toast({
+                    title: "Success",
+                    description: "Skill added to waiting list",
+                });
+            }
         } catch (error) {
             console.error('Error adding to waiting list:', error);
             toast({

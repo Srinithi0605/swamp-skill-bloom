@@ -38,6 +38,7 @@ interface AvailabilitySlot {
 interface UserProfile {
   id: string;
   email: string;
+  name: string;
   location: string;
   bio: string;
   avatar_url: string | null;
@@ -64,7 +65,8 @@ const Profile = () => {
   const [formData, setFormData] = useState({
     location: '',
     bio: '',
-    email: ''
+    email: '',
+    name: ''
   });
 
   // New state for dialogs
@@ -95,7 +97,7 @@ const Profile = () => {
       // Fetch user data
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, location, bio, avatar_url, created_at')
         .eq('id', authUser.id)
         .single();
 
@@ -105,7 +107,8 @@ const Profile = () => {
       setFormData({
         location: userData.location || '',
         bio: userData.bio || '',
-        email: userData.email
+        email: userData.email,
+        name: userData.name || ''
       });
 
       // Fetch availability
@@ -145,7 +148,8 @@ const Profile = () => {
         .from('users')
         .update({
           location: formData.location,
-          bio: formData.bio
+          bio: formData.bio,
+          name: formData.name
         })
         .eq('id', authUser.id);
 
@@ -154,11 +158,12 @@ const Profile = () => {
       setUser(prev => prev ? {
         ...prev,
         location: formData.location,
-        bio: formData.bio
+        bio: formData.bio,
+        name: formData.name
       } : null);
 
-    setEditing(false);
-    toast({
+      setEditing(false);
+      toast({
         title: "Success",
         description: "Profile updated successfully",
       });
@@ -283,18 +288,18 @@ const Profile = () => {
             <div className="h-32 bg-gradient-to-r from-primary to-secondary"></div>
             <div className="relative px-6 pb-6">
               <Avatar className="absolute -top-12 border-4 border-white w-24 h-24">
-                <AvatarImage src={user.avatar_url || ''} />
+                <AvatarImage src={user?.avatar_url || ''} />
                 <AvatarFallback className="bg-swamp text-white text-xl">
-                  {user.email.split('@')[0].slice(0, 2).toUpperCase()}
+                  {user?.name?.slice(0, 2).toUpperCase() || user?.email?.split('@')[0].slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
               <div className="ml-28 pt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-swamp">{user.email.split('@')[0]}</h1>
+                  <h1 className="text-2xl font-bold text-swamp">{user?.name || user?.email?.split('@')[0]}</h1>
                   <div className="flex items-center text-gray-500 mt-1">
                     <MapPin className="h-4 w-4 mr-1" />
-                    <span className="text-sm">{user.location || 'No location set'}</span>
+                    <span className="text-sm">{user?.location || 'No location set'}</span>
                   </div>
                 </div>
                 <Button 
@@ -318,6 +323,17 @@ const Profile = () => {
                 <CardContent>
                   {editing ? (
                     <form className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input 
+                          id="name" 
+                          name="name" 
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          placeholder="Your name"
+                        />
+                      </div>
+                      
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
                         <Input 
@@ -363,13 +379,18 @@ const Profile = () => {
                   ) : (
                     <div className="space-y-4">
                       <div>
+                        <h4 className="text-sm font-medium text-gray-500 mb-1">Name</h4>
+                        <p>{user?.name || 'No name set'}</p>
+                      </div>
+                      
+                      <div>
                         <h4 className="text-sm font-medium text-gray-500 mb-1">Email</h4>
-                        <p>{user.email}</p>
+                        <p>{user?.email}</p>
                       </div>
                       
                       <div>
                         <h4 className="text-sm font-medium text-gray-500 mb-1">Bio</h4>
-                        <p className="text-sm text-gray-700">{user.bio || 'No bio added yet'}</p>
+                        <p className="text-sm text-gray-700">{user?.bio || 'No bio added yet'}</p>
                       </div>
                     </div>
                   )}
