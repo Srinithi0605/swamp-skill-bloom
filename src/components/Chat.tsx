@@ -45,6 +45,29 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
     fetchMessages();
   }, [matchId]);
 
+  // Real-time listener for new messages
+  useEffect(() => {
+    if (!matchId) return;
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `match_id=eq.${matchId}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [matchId]);
+
   // Send a message and save to DB
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user?.id) return;
@@ -92,8 +115,8 @@ const Chat = ({ matchId, otherUserId, otherUserName, otherUserInitials, onClose 
           >
             <div
               className={`max-w-[70%] rounded-lg p-3 ${message.sender_id === user?.id
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100'
+                ? 'bg-primary text-white'
+                : 'bg-gray-100'
                 }`}
             >
               <p>{message.message}</p>
