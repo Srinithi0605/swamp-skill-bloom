@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WaitingListEntry {
@@ -13,7 +12,8 @@ export interface WaitingListEntry {
 export const addToWaitingList = async (
   email: string,
   desiredSkill: string,
-  category?: string
+  category?: string,
+  userId?: string
 ): Promise<{ success: boolean; error?: any }> => {
   try {
     const { error } = await supabase
@@ -21,7 +21,8 @@ export const addToWaitingList = async (
       .insert({
         email,
         desired_skill: desiredSkill,
-        category
+        category,
+        user_id: userId
       });
 
     if (error) throw error;
