@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -8,7 +7,7 @@ export interface Skill {
   id: string;
   name: string;
   category: string;
-  type: 'teach' | 'learn';
+  type: 'offered' | 'wanted';
 }
 
 interface UserSkillsContextType {
@@ -16,8 +15,8 @@ interface UserSkillsContextType {
   skillsWanted: Skill[];
   isLoading: boolean;
   fetchUserSkills: () => Promise<void>;
-  handleDeleteSkill: (skillId: string, type: 'teach' | 'learn') => Promise<void>;
-  handleAddSkill: (newSkill: { name: string; category: string; type: 'teach' | 'learn' }) => Promise<boolean>;
+  handleDeleteSkill: (skillId: string, type: 'offered' | 'wanted') => Promise<void>;
+  handleAddSkill: (newSkill: { name: string; category: string; type: 'offered' | 'wanted' }) => Promise<boolean>;
 }
 
 const UserSkillsContext = createContext<UserSkillsContextType | undefined>(undefined);
@@ -59,21 +58,21 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
       if (skillsError) throw skillsError;
 
       const teachingSkills = skillsData
-        .filter(s => s.type === 'teach')
+        .filter(s => s.type === 'offered')
         .map(s => ({
           id: s.skill.id,
           name: s.skill.name,
           category: s.skill.category,
-          type: 'teach' as const
+          type: 'offered' as const
         }));
 
       const learningSkills = skillsData
-        .filter(s => s.type === 'learn')
+        .filter(s => s.type === 'wanted')
         .map(s => ({
           id: s.skill.id,
           name: s.skill.name,
           category: s.skill.category,
-          type: 'learn' as const
+          type: 'wanted' as const
         }));
 
       setSkillsOffered(teachingSkills);
@@ -90,7 +89,7 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const handleDeleteSkill = async (skillId: string, type: 'teach' | 'learn'): Promise<void> => {
+  const handleDeleteSkill = async (skillId: string, type: 'offered' | 'wanted'): Promise<void> => {
     try {
       const { error } = await supabase
         .from('user_skills')
@@ -101,7 +100,7 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      if (type === 'teach') {
+      if (type === 'offered') {
         setSkillsOffered(prev => prev.filter(skill => skill.id !== skillId));
       } else {
         setSkillsWanted(prev => prev.filter(skill => skill.id !== skillId));
@@ -121,7 +120,7 @@ export const UserSkillsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const handleAddSkill = async (newSkill: { name: string; category: string; type: 'teach' | 'learn' }): Promise<boolean> => {
+  const handleAddSkill = async (newSkill: { name: string; category: string; type: 'offered' | 'wanted' }): Promise<boolean> => {
     if (!authUser || !newSkill.name || !newSkill.category) {
       toast({
         title: "Error",
