@@ -307,7 +307,7 @@ const Profile = () => {
               
               <div className="ml-28 pt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-white dark:text-white">{user?.name || user?.email?.split('@')[0]}</h1>
+                  <h1 className="text-2xl font-bold text-swamp">{user?.name || user?.email?.split('@')[0]}</h1>
                   <div className="flex items-center text-gray-500 mt-1">
                     <MapPin className="h-4 w-4 mr-1" />
                     <span className="text-sm">{user?.location || 'No location set'}</span>

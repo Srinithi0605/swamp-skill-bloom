@@ -251,7 +251,7 @@ const Matches = () => {
       <NavBar />
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold text-white dark:text-white mb-6">Your Skill Matches</h1>
+          <h1 className="text-3xl font-bold text-swamp mb-6">Your Skill Matches</h1>
           <Tabs defaultValue="pending" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="pending" className="flex-1">
