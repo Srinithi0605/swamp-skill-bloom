@@ -283,7 +283,7 @@ const Matches = () => {
                             <AvatarFallback>{getInitials(otherUser.name, otherUser.email)}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-bold text-lg text-white dark:text-white">{otherUser.name || otherUser.email}</h3>
+                            <h3 className="font-bold text-lg">{otherUser.name || otherUser.email}</h3>
                           </div>
                         </div>
                         <div>
@@ -340,7 +340,7 @@ const Matches = () => {
                             <AvatarFallback>{getInitials(otherUser.name, otherUser.email)}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-bold text-lg text-white dark:text-white">{otherUser.name || otherUser.email}</h3>
+                            <h3 className="font-bold text-lg">{otherUser.name || otherUser.email}</h3>
                           </div>
                         </div>
                         <div>
@@ -377,7 +377,7 @@ const Matches = () => {
                           <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-bold text-lg text-white dark:text-white">{user.name || user.email}</h3>
+                          <h3 className="font-bold text-lg">{user.name || user.email}</h3>
                         </div>
                       </div>
                       <div className="mt-4">
