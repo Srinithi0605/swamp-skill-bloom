@@ -214,7 +214,7 @@ const WaitingList = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0a101a]">
             <NavBar />
             <main className="container mx-auto py-10 px-4">
                 <h1 className="text-3xl font-bold text-center mb-8">Skill Waiting List</h1>
@@ -223,7 +223,7 @@ const WaitingList = () => {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                     {/* Left: Request a Skill */}
-                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4">
+                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 dark:bg-[#0a101a] dark:border dark:border-gray-700">
                         <h2 className="text-xl font-semibold mb-2">Request a Skill</h2>
                         <p className="text-gray-500 text-sm mb-4">
                             Fill out this form to add a skill you're looking for to the waiting list.
@@ -241,7 +241,7 @@ const WaitingList = () => {
                             <div>
                                 <label className="block text-sm font-medium mb-1">Category *</label>
                                 <select
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border rounded bg-white text-black border-gray-300 dark:bg-[#0a101a] dark:text-white dark:border-gray-700"
                                     value={category}
                                     onChange={e => setCategory(e.target.value)}
                                     required
@@ -281,7 +281,7 @@ const WaitingList = () => {
                     </div>
 
                     {/* Right: Current Waiting List */}
-                    <div className="bg-white rounded-lg shadow p-6">
+                    <div className="bg-white rounded-lg shadow p-6 dark:bg-[#0a101a] dark:border dark:border-gray-700">
                         <h2 className="text-xl font-semibold mb-4">Current Waiting List</h2>
                         <p className="text-gray-500 text-sm mb-4">
                             Skills people are waiting to learn. If you can teach any of these, add them to your profile!
@@ -299,7 +299,7 @@ const WaitingList = () => {
                                 </thead>
                                 <tbody>
                                     {waitingSkills.length > 0 ? waitingSkills.map((ws, idx) => (
-                                        <tr key={ws.id} className="border-b hover:bg-gray-50">
+                                        <tr key={ws.id} className="border-b hover:bg-gray-50 dark:hover:bg-[#101624]">
                                             <td className="py-2 px-2">{ws.desired_skill}</td>
                                             <td className="py-2 px-2">
                                                 <Badge>Other</Badge>
@@ -321,7 +321,7 @@ const WaitingList = () => {
                                         </tr>
                                     )) : (
                                         <tr>
-                                            <td colSpan={5} className="py-8 text-center text-gray-500">
+                                            <td colSpan={5} className="py-8 text-center text-gray-500 dark:text-gray-400">
                                                 No skills are currently in the waiting list
                                             </td>
                                         </tr>

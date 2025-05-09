@@ -97,7 +97,7 @@ const Chat = ({ otherUserId, otherUserName, otherUserInitials, onClose }: ChatPr
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
-      <div className="flex items-center space-x-3 p-4 border-b">
+      <div className="flex items-center space-x-3 p-4 border-b dark:bg-[#0a101a] dark:border-gray-700">
         <Avatar>
           <AvatarFallback className="bg-primary text-white">
             {otherUserInitials}
@@ -119,11 +119,11 @@ const Chat = ({ otherUserId, otherUserName, otherUserInitials, onClose }: ChatPr
             <div
               className={`max-w-[70%] rounded-lg p-3 ${message.sender_id === user?.id
                 ? 'bg-primary text-white'
-                : 'bg-gray-100'
+                : 'bg-gray-100 dark:bg-[#1a2233] dark:text-white'
                 }`}
             >
               <p>{message.message}</p>
-              <p className="text-xs mt-1 opacity-70">
+              <p className="text-xs mt-1 opacity-70 dark:text-gray-300">
                 {new Date(message.timestamp).toLocaleTimeString()}
               </p>
             </div>
@@ -132,13 +132,13 @@ const Chat = ({ otherUserId, otherUserName, otherUserInitials, onClose }: ChatPr
       </div>
 
       {/* Message Input */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t dark:bg-[#0a101a] dark:border-gray-700">
         <div className="flex space-x-2">
           <Textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message..."
-            className="min-h-[60px]"
+            className="min-h-[60px] dark:bg-[#1a2233] dark:text-white dark:border-gray-700"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();

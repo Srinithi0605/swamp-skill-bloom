@@ -36,13 +36,13 @@ const Messages = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0a101a]">
             <NavBar />
             <main className="container mx-auto py-10 px-4">
                 <h1 className="text-3xl font-bold text-center mb-8">Messages</h1>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                     {/* User List */}
-                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 md:col-span-1">
+                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 md:col-span-1 dark:bg-[#0a101a] dark:border dark:border-gray-700">
                         <h2 className="text-xl font-semibold mb-2">All Users</h2>
                         <Input
                             placeholder="Search users..."
@@ -67,7 +67,7 @@ const Messages = () => {
                         </div>
                     </div>
                     {/* Chat Area */}
-                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 md:col-span-2 min-h-[60vh]">
+                    <div className="bg-white rounded-lg shadow p-6 flex flex-col gap-4 md:col-span-2 min-h-[60vh] dark:bg-[#0a101a] dark:border dark:border-gray-700">
                         {selectedUser ? (
                             <Chat
                                 otherUserId={selectedUser.id}
@@ -76,7 +76,7 @@ const Messages = () => {
                                 onClose={() => setSelectedUser(null)}
                             />
                         ) : (
-                            <div className="text-gray-500 text-center my-auto">Select a user to start chatting.</div>
+                            <div className="text-gray-500 text-center my-auto dark:text-gray-400">Select a user to start chatting.</div>
                         )}
                     </div>
                 </div>

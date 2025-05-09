@@ -247,11 +247,11 @@ const Matches = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral">
+    <div className="min-h-screen flex flex-col bg-neutral dark:bg-gray-900">
       <NavBar />
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl font-bold text-swamp mb-6">Your Skill Matches</h1>
+          <h1 className="text-3xl font-bold text-white dark:text-white mb-6">Your Skill Matches</h1>
           <Tabs defaultValue="pending" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="pending" className="flex-1">
@@ -277,13 +277,13 @@ const Matches = () => {
                     const otherUser = isUser1 ? match.user2 : match.user1;
                     const showActions = !isUser1 && match.status === 'pending';
                     return (
-                      <Card key={match.id} className="p-6 flex flex-col gap-4 shadow-lg border border-gray-200">
+                      <Card key={match.id} className="p-6 flex flex-col gap-4 shadow-lg border border-gray-200 dark:bg-[#0a101a] dark:border-gray-700">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
                             <AvatarFallback>{getInitials(otherUser.name, otherUser.email)}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-bold text-lg">{otherUser.name || otherUser.email}</h3>
+                            <h3 className="font-bold text-lg text-white dark:text-white">{otherUser.name || otherUser.email}</h3>
                           </div>
                         </div>
                         <div>
@@ -334,13 +334,13 @@ const Matches = () => {
                     const isUser1 = match.user1_id === user.id;
                     const otherUser = isUser1 ? match.user2 : match.user1;
                     return (
-                      <Card key={match.id} className="p-6 flex flex-col gap-4 shadow-lg border border-green-200">
+                      <Card key={match.id} className="p-6 flex flex-col gap-4 shadow-lg border border-green-200 dark:bg-[#0a101a] dark:border-gray-700">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
                             <AvatarFallback>{getInitials(otherUser.name, otherUser.email)}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <h3 className="font-bold text-lg">{otherUser.name || otherUser.email}</h3>
+                            <h3 className="font-bold text-lg text-white dark:text-white">{otherUser.name || otherUser.email}</h3>
                           </div>
                         </div>
                         <div>
@@ -371,13 +371,13 @@ const Matches = () => {
                   </div>
                 ) : potentialMatches.length > 0 ? (
                   potentialMatches.map((user) => (
-                    <Card key={user.id} className="p-4 shadow-md border border-gray-200">
+                    <Card key={user.id} className="p-4 shadow-md border border-gray-200 dark:bg-[#0a101a] dark:border-gray-700">
                       <div className="flex items-center space-x-4">
                         <Avatar className="h-12 w-12">
                           <AvatarFallback>{getInitials(user.name, user.email)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-bold text-lg">{user.name || user.email}</h3>
+                          <h3 className="font-bold text-lg text-white dark:text-white">{user.name || user.email}</h3>
                         </div>
                       </div>
                       <div className="mt-4">
@@ -398,7 +398,11 @@ const Matches = () => {
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Skills Wanted:</h4>
                         <div className="flex flex-wrap gap-2">
                           {user.skillsLearn.map((skill: any) => (
-                            <Badge key={skill.skill.id} className="bg-secondary text-white">
+                            <Badge
+                              key={skill.skill.id}
+                              className={`${selectedMySkillIds[user.id] === skill.skill.id ? 'bg-secondary-dark' : 'bg-secondary'} text-white cursor-pointer`}
+                              onClick={() => setSelectedMySkillIds(prev => ({ ...prev, [user.id]: skill.skill.id }))}
+                            >
                               {skill.skill.name}
                             </Badge>
                           ))}
@@ -410,7 +414,7 @@ const Matches = () => {
                           <div>
                             <label className="text-sm text-gray-600 mb-1 block">Their Offered Skills:</label>
                             <select
-                              className="w-full p-2 border rounded"
+                              className="w-full p-2 border rounded bg-white text-black border-gray-300 dark:bg-[#0a101a] dark:text-white dark:border-gray-700"
                               value={selectedSkillIds[user.id] || ''}
                               onChange={e => setSelectedSkillIds(prev => ({ ...prev, [user.id]: e.target.value }))}
                             >
@@ -425,7 +429,7 @@ const Matches = () => {
                           <div>
                             <label className="text-sm text-gray-600 mb-1 block">Your Skills to Trade:</label>
                             <select
-                              className="w-full p-2 border rounded"
+                              className="w-full p-2 border rounded bg-white text-black border-gray-300 dark:bg-[#0a101a] dark:text-white dark:border-gray-700"
                               value={selectedMySkillIds[user.id] || ''}
                               onChange={e => setSelectedMySkillIds(prev => ({ ...prev, [user.id]: e.target.value }))}
                             >

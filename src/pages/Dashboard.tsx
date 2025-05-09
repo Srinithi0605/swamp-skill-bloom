@@ -288,7 +288,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral">
+    <div className="min-h-screen flex flex-col bg-neutral dark:bg-gray-900">
       <NavBar />
 
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
@@ -303,7 +303,7 @@ const Dashboard = () => {
             {/* Main Content - Skills */}
             <div className="lg:col-span-2 space-y-6">
               {/* Skills I Offer */}
-              <Card>
+              <Card className="dark:bg-[#0a101a] dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Skills I Offer</CardTitle>
                   <Dialog>
@@ -358,7 +358,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {skillsOffered.map((skill) => (
-                    <div key={skill.id} className="flex items-center justify-between p-3 hover:bg-neutral rounded-lg mb-1">
+                    <div key={skill.id} className="flex items-center justify-between p-3 hover:bg-neutral dark:hover:bg-gray-700 rounded-lg mb-1">
                       <div>
                         <span className="font-medium">{skill.name}</span>
                         <Badge variant="outline" className="ml-2 text-xs">{skill.category}</Badge>
@@ -385,7 +385,7 @@ const Dashboard = () => {
               </Card>
 
               {/* Skills I Want */}
-              <Card>
+              <Card className="dark:bg-[#0a101a] dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Skills I Want to Learn</CardTitle>
                   <Dialog>
@@ -440,7 +440,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {skillsWanted.map((skill) => (
-                    <div key={skill.id} className="flex items-center justify-between p-3 hover:bg-neutral rounded-lg mb-1">
+                    <div key={skill.id} className="flex items-center justify-between p-3 hover:bg-neutral dark:hover:bg-gray-700 rounded-lg mb-1">
                       <div>
                         <span className="font-medium">{skill.name}</span>
                         <Badge variant="outline" className="ml-2 text-xs">{skill.category}</Badge>
@@ -514,7 +514,7 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {notifications.map((notification) => (
-                      <div key={notification.id} className="flex items-start space-x-4 p-3 bg-neutral rounded-lg">
+                      <div key={notification.id} className="flex items-start space-x-4 p-3 bg-neutral rounded-lg dark:bg-gray-800 dark:text-white">
                         {notification.type === 'message' && <MessageSquare className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}
                         {notification.type === 'match' && <User className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}
                         {notification.type === 'profile' && <Bell className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />}

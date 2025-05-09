@@ -264,7 +264,7 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-neutral">
+      <div className="min-h-screen flex flex-col bg-neutral dark:bg-[#0a101a]">
         <NavBar />
         <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
@@ -277,7 +277,7 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col bg-neutral">
+      <div className="min-h-screen flex flex-col bg-neutral dark:bg-[#0a101a]">
         <NavBar />
         <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
@@ -289,13 +289,13 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral">
+    <div className="min-h-screen flex flex-col bg-neutral dark:bg-[#0a101a]">
       <NavBar />
       
       <main className="flex-grow py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           {/* Profile Header */}
-          <Card className="mb-6 overflow-hidden">
+          <Card className="mb-6 overflow-hidden dark:bg-[#0a101a] dark:border dark:border-gray-700">
             <div className="h-32 bg-gradient-to-r from-primary to-secondary"></div>
             <div className="relative px-6 pb-6">
               <Avatar className="absolute -top-12 border-4 border-white w-24 h-24">
@@ -307,7 +307,7 @@ const Profile = () => {
               
               <div className="ml-28 pt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                  <h1 className="text-2xl font-bold text-swamp">{user?.name || user?.email?.split('@')[0]}</h1>
+                  <h1 className="text-2xl font-bold text-white dark:text-white">{user?.name || user?.email?.split('@')[0]}</h1>
                   <div className="flex items-center text-gray-500 mt-1">
                     <MapPin className="h-4 w-4 mr-1" />
                     <span className="text-sm">{user?.location || 'No location set'}</span>
@@ -327,7 +327,7 @@ const Profile = () => {
             {/* Left Column */}
             <div className="md:col-span-1 space-y-6">
               {/* Profile Details */}
-              <Card>
+              <Card className="dark:bg-[#0a101a] dark:border dark:border-gray-700">
                 <CardHeader>
                   <CardTitle>Profile</CardTitle>
                 </CardHeader>
@@ -409,7 +409,7 @@ const Profile = () => {
               </Card>
               
               {/* Availability */}
-              <Card>
+              <Card className="dark:bg-[#0a101a] dark:border dark:border-gray-700">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Availability</CardTitle>
                   {!editing && (
@@ -458,7 +458,7 @@ const Profile = () => {
             {/* Right Column */}
             <div className="md:col-span-2 space-y-6">
               {/* Skills Tabs */}
-              <Card>
+              <Card className="dark:bg-[#0a101a] dark:border dark:border-gray-700">
                 <Tabs defaultValue="offered">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -486,7 +486,7 @@ const Profile = () => {
                           skillsOffered.map((skill) => (
                           <div 
                             key={skill.id} 
-                            className="p-3 border rounded-lg flex justify-between items-center"
+                            className="p-3 border rounded-lg flex justify-between items-center dark:bg-transparent hover:dark:bg-[#101624] dark:border-gray-700"
                           >
                             <div>
                               <h4 className="font-medium">{skill.name}</h4>
@@ -509,7 +509,7 @@ const Profile = () => {
                           </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500">No skills offered yet</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No skills offered yet</p>
                         )}
                       </div>
                     </TabsContent>
@@ -520,7 +520,7 @@ const Profile = () => {
                           skillsWanted.map((skill) => (
                           <div 
                             key={skill.id} 
-                            className="p-3 border rounded-lg flex justify-between items-center"
+                            className="p-3 border rounded-lg flex justify-between items-center dark:bg-transparent hover:dark:bg-[#101624] dark:border-gray-700"
                           >
                             <div>
                               <h4 className="font-medium">{skill.name}</h4>
@@ -543,7 +543,7 @@ const Profile = () => {
                           </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500">No skills wanted yet</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No skills wanted yet</p>
                         )}
                       </div>
                     </TabsContent>
@@ -557,7 +557,7 @@ const Profile = () => {
 
       {/* Add Availability Dialog */}
       <Dialog open={showAvailabilityDialog} onOpenChange={setShowAvailabilityDialog}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#0a101a] dark:border dark:border-gray-700">
           <DialogHeader>
             <DialogTitle>Add Availability</DialogTitle>
           </DialogHeader>
@@ -568,10 +568,10 @@ const Profile = () => {
                 value={newAvailability.day}
                 onValueChange={(value) => setNewAvailability(prev => ({ ...prev, day: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   {DAYS_OF_WEEK.map((day) => (
                     <SelectItem key={day} value={day}>
                       {day}
@@ -586,10 +586,10 @@ const Profile = () => {
                 value={newAvailability.start_time}
                 onValueChange={(value) => setNewAvailability(prev => ({ ...prev, start_time: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectValue placeholder="Select start time" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   {TIME_SLOTS.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
@@ -604,10 +604,10 @@ const Profile = () => {
                 value={newAvailability.end_time}
                 onValueChange={(value) => setNewAvailability(prev => ({ ...prev, end_time: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectValue placeholder="Select end time" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   {TIME_SLOTS.map((time) => (
                     <SelectItem key={time} value={time}>
                       {time}
@@ -628,7 +628,7 @@ const Profile = () => {
 
       {/* Add Skill Dialog */}
       <Dialog open={showAddSkillDialog} onOpenChange={setShowAddSkillDialog}>
-        <DialogContent>
+        <DialogContent className="dark:bg-[#0a101a] dark:border dark:border-gray-700">
           <DialogHeader>
             <DialogTitle>Add New Skill</DialogTitle>
           </DialogHeader>
@@ -647,10 +647,10 @@ const Profile = () => {
                 value={newSkill.category}
                 onValueChange={(value) => setNewSkill(prev => ({ ...prev, category: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   {skillCategories.map((category) => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
@@ -663,10 +663,10 @@ const Profile = () => {
                 value={newSkill.type}
                 onValueChange={(value: 'offered' | 'wanted') => setNewSkill(prev => ({ ...prev, type: value }))}
               >
-                <SelectTrigger>
+                <SelectTrigger className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="dark:bg-[#1a2233] dark:text-white dark:border-gray-700">
                   <SelectItem value="offered">I Can Teach This</SelectItem>
                   <SelectItem value="wanted">I Want to Learn This</SelectItem>
                 </SelectContent>
